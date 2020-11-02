@@ -11,111 +11,112 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import PredefinedSplit
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-# from sklearn.linear_model import SGDClassifier
 # from sklearn.svm import SVC
+# from sklearn.linear_model import SGDClassifier
 # from sklearn.naive_bayes import MultinomialNB
 # from sklearn.naive_bayes import GaussianNB
 # from sklearn.neighbors import KNeighborsClassifier
 
 from sklearn.pipeline import Pipeline
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc
-
-def create_pipeline(estimator, reduction=False):
-
-    steps = [ ]
-    steps.append(('classifier', estimator))
-
-    return Pipeline(steps)
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score
 
 binary_models = []
-binary_models.append(create_pipeline(LogisticRegression(), False))
-binary_models.append(create_pipeline(RandomForestClassifier(n_estimators = 1000, random_state = 42), False))
+binary_models.append( LogisticRegression(random_state = 42) )
+binary_models.append( RandomForestClassifier(random_state = 42) )
+# binary_models.append( SVC(random_state = 42, probability=True) )
 
+parameters = [
+    {'clf__C': ( np.logspace(-5, 1, 5) ),
+        'clf__penalty': ['l1', 'l2']
+        },
+    {'clf__max_depth': [int(x) for x in np.linspace(10, 110, num = 11)],
+        'clf__min_samples_split': [2, 5, 10],
+        'clf__min_samples_leaf': [1, 2, 4]
+        },
+    {'clf__C': [0.001, 0.01, 0.1, 1, 10],
+        'clf__gamma': [0.001, 0.01, 0.1, 1]
+        }
+]
+
+ 
 def score_models(models, loader):
+    
+    X_train, X_valid, X_test, y_train, y_valid, y_test = loader.sets()
+    n_Xtrn = len(X_train)
+    n_Xval = len(X_valid)
+    n_Xtst = len(X_test)
+    print('n_train:', n_Xtrn, '\nn_valid:', n_Xval, '\nn_test:' , n_Xtst)
 
-    for model in models:
-        name = model.named_steps['classifier'].__class__.__name__
-        print(model, name)  
-
-        X_train, X_valid, X_test, y_train, y_valid, y_test = loader.sets()
-        n_Xtrn = len(X_train)
-        n_Xval = len(X_valid)
-        n_Xtst = len(X_test)
-        print('n_train:', n_Xtrn, '\nn_valid:', n_Xval, '\nn_test:' , n_Xtst)
-
+    names = [str(i).split('(')[0] for i in models]
+    for model, name, params in zip(models, names, parameters):
+        print(model, '\n', name, '\n', params)  
+        
+        pipe = Pipeline([
+            ('clf', model),
+            ])
+        
         # Create a list where train data indices are -1 and validation data indices are 0
         test_fold = [-1 for i in range(n_Xtrn)] + [0 for i in range(n_Xval)]
         ps = PredefinedSplit(test_fold=test_fold)
-        split = [(range(n_Xtrn), range(n_Xtrn, n_Xtrn + n_Xval))]
         
-        gridsearch_pipe = Pipeline([
-            ('classifier', model)
-        ])
-        
-        C = np.logspace(0,4,10)
-        penalty = ['l1', 'l2']
-
-        if name == 'logistic':               
-            param_grid = {'classifier__C':C, 'classifier__penalty':penalty}
-            # param_grid = dict(C=C, penalty=penalty)
-            # param_grid = {'kernel':('linear', 'rbf'), 'C':np.logspace(0,4,10), 'penalty':penalty}
-        elif name == 'randomforest':         
-            param_grid = {'classifier__C':C, 'classifier__penalty':penalty}
-            # param_grid = dict(C=C, penalty=penalty)
-            # param_grid = {'kernel':('linear', 'rbf'), 'C':np.logspace(0,4,10), 'penalty':penalty}
-        else:           
-            param_grid = {'classifier__C':C, 'classifier__penalty':penalty}
-            # param_grid = dict(C=C, penalty=penalty)
-            # param_grid = {'kernel':('linear', 'rbf'), 'C':np.logspace(0,4,10), 'penalty':penalty}
-
-        grid_search = GridSearchCV(estimator=gridsearch_pipe, param_grid=param_grid, cv=split)
-        grid_search.fit(X_train+X_valid, y_train+y_valid)
-        best_param = grid_search.best_params_
-        print(grid_search.best_score_)
+        # Create gridsearch with specified valid set
+        grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=ps) #scoring='roc_auc',
+        start = time.time()
+        best_model = grid_search.fit(X_train+X_valid, y_train+y_valid)
+        best_param = best_model.best_params_
         print(best_param)
+        print(grid_search.best_score_)
+        
+        y_pred = best_model.predict(X_test)
+        y_valid_pred = best_model.predict(X_valid)
+        y_pred_prob = best_model.predict_proba(X_test)
 
-        best_model = model()
-
+        # save results
         scores = {
-            'model': str(model),
+            'time': time.time() - start,
             'name': name,
-            'size': [],
-            'accuracy': [],
-            'precision': [],
-            'recall': [],
-            'f1_valid': [],
-            'f1_train': [],
-            'auc': [],
-            'time': [],
+            'model': str(model),
+            'size': [len(X_train), len(X_valid), len(X_test)],
+            
+            'accuracy': accuracy_score(y_test, y_pred),
+            'precision': precision_score(y_test, y_pred, average='weighted'),
+            'recall': recall_score(y_test, y_pred, average='weighted'),
+            'auc': roc_auc_score(y_test, y_pred_prob[:,1], average='weighted'),
+            'f1_test': f1_score(y_test, y_pred, average='weighted'),
+            'f1_valid': f1_score(y_valid, y_valid_pred, average='weighted'),
         }
 
-        start = time.time()
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        y_train_pred = model.predict(X_train)
-
-        scores['time'].append(time.time() - start)
-        scores['size'].append([len(X_train), len(X_test)])
-        scores['accuracy'].append(accuracy_score(y_test, y_pred))
-        scores['precision'].append(precision_score(y_test, y_pred, average='weighted'))
-        scores['recall'].append(recall_score(y_test, y_pred, average='weighted'))
-        scores['f1_valid'].append(f1_score(y_test, y_pred, average='weighted'))
-        scores['f1_train'].append(f1_score(y_train, y_train_pred, average='weighted'))
-        scores['auc'].append(f1_score(y_train, y_train_pred, average='weighted'))
-            
+        # scores['time'].append( time.time() - start )
+        # scores['size'].append( [len(X_train), len(X_valid), len(X_test)] )
+        # scores['accuracy'].append( accuracy_score(y_test, y_pred) )
+        # scores['precision'].append( precision_score(y_test, y_pred, average='weighted') )
+        # scores['recall'].append( recall_score(y_test, y_pred, average='weighted') )
+        # scores['f1_valid'].append( f1_score(y_test, y_pred, average='weighted') )
+        # scores['f1_train'].append( f1_score(y_train, y_train_pred, average='weighted') )
+        # scores['auc'].append( f1_score(y_train, y_train_pred, average='weighted') )
+        
         print('model: ', scores['name'])
         print('accuracy: ', scores['accuracy'])
         print('precision: ', scores['precision'])
         print('recall: ', scores['recall'])
+        print('f1_test: ', scores['f1_test'])
         print('f1_valid: ', scores['f1_valid'])
-        print('f1_train: ', scores['f1_train'])
         print('auc: ', scores['auc'])
         print('time: ', scores['time'])
 
+        # if scores['name']=='LogisticRegression':
+        #     import shap
+        #     explainer = shap.TreeExplainer(model)
+        #     scores['shap_values'] = explainer.shap_values(X_train)
+
         yield scores
 
+# for scores in score_models(binary_models, loader):
+#     print(scores)
 # if __name__ == '__main__':
+#     loader = CorpusLoader(X_int, y, idx=groups)
 #     for scores in score_models(binary_models, loader):
+#         print(scores)
 #         with open('results.json', 'a') as f:
 #             f.write(json.dumps(scores) + "\n")

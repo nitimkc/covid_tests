@@ -13,7 +13,8 @@ from build import score_models
 log = logging.getLogger("readability.readability")
 log.setLevel('WARNING')
 
-ROOT = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\covid_symptoms')
+# ROOT = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\covid_symptoms')
+ROOT = Path(r'/Users/peaceforlives/Documents/Projects/covid_symptoms') # mac
 RECORDS = Path.joinpath(ROOT, 'data')#, 'RawData_IMOH_Sep_20.csv')
 RESULTS = Path.joinpath(ROOT, 'results')
 

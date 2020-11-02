@@ -1,19 +1,6 @@
 Notes on "covid_Symptoms" project
 
-!- try to spit out index, such that train = -1, valid = 0 and test = 1
-!- this can then be used to extract train, test valid for both X and y
 
-
-
-
-
-
-- https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html
-- https://github.com/nitimkc/cyberbullying/blob/master/classification/build.py
-- https://stackoverflow.com/questions/40197710/create-nested-list-from-pandas-dataframe
-- https://stackoverflow.com/questions/50859010/using-separate-predefined-validation-set-with-sklearn-gridsearchcv
-- https://stackoverflow.com/questions/45677916/performing-grid-search-with-a-predefined-validation-set-sklearn
-- https://stackoverflow.com/questions/41899132/invalid-parameter-for-sklearn-estimator-pipeline
 
 
 
@@ -23,4 +10,3 @@ Notes on "covid_Symptoms" project
 # Calculate Shapley values
 - Shapley value is the average marginal contribution of a feature value across all possible coalitions.
 - coalition being various combination of the amount of contribution from any given 
-- 
