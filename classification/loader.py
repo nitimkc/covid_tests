@@ -14,21 +14,50 @@ class CorpusLoader(object):
     def __init__(self, X, y, idx=None):
         self.X = X
         self.y = y
-        self.n = len(y)
         self.index = idx
         self.groups = np.unique(idx)
     
-    # Validation data (X_val, y_val) is currently inside X_train, which will be split using PredefinedSplit inside GridSearchCV
-    def sets(self):
-        n = len(self.y)
-        m = int(n*0.25)
-        
-        X_test, X_rest, y_test, y_rest = self.X[ :m], self.X[m+1: ], self.y[ :m], self.y[m+1: ]
-        # X_test, X_rest, y_test, y_rest = X[ :m], X[m+1: ], y[ :m], y[m+1: ]
-        X_train, X_valid, y_train, y_valid = tts(X_rest, y_rest, train_size = 0.666, random_state = 2020)
-        print(len(X_train), len(X_valid), len(X_test))
+    def get_idx(self, index=None):    
+        if self.index is None:
+            return range(0, len(self.y))
+        else:
+            if len(self.index) != len(self.y):
+                raiseExceptions('length of index must be equal to length of X')
+            idxval = np.array(self.index)
+            pos_sorted = np.argsort(idxval)
+            sorted_idxval = idxval[pos_sorted]
 
-        return X_train, X_valid, X_test, y_train, y_valid, y_test
+            vals, start_idx, count = np.unique(sorted_idxval, return_counts=True, return_index=True)
+            splitted_idx = np.split(pos_sorted, start_idx[1:])
+            splitted_idx = [list(i) for i in splitted_idx]
+            return splitted_idx
+
+    def documents(self):
+        if self.index is None:
+            return self.X
+        else:           
+            split_X = [ [self.X[i] for i in sub_idx ] for sub_idx in self.get_idx() ]
+            return split_X
+
+    def labels(self):
+        if self.index is None:
+            return self.y
+        else:           
+            split_y = [ [self.y[i] for i in sub_idx ] for sub_idx in self.get_idx() ]
+            return split_y
+
+    def sets(self, set='X'):
+        X_dict = {}
+        y_dict = {}
+        for grp, X_grp, y_grp in zip(self.groups, self.documents(), self.labels()):
+            X_dict[grp] = X_grp
+            y_dict[grp] = y_grp
+        
+        train = [ X_dict[ get_key(X_dict, 'train')], y_dict[ get_key(y_dict, 'train')] ]
+        valid = [ X_dict[ get_key(X_dict, 'valid')], y_dict[ get_key(y_dict, 'valid')] ]
+        test  = [ X_dict[ get_key(X_dict, 'test')], y_dict[ get_key(y_dict, 'test')] ]
+
+        return train, valid, test
 
 # dt_split = list(data.fields('Validation'))
 # loader = CorpusLoader(X, y, idx=dt_split)

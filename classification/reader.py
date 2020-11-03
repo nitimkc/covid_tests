@@ -2,20 +2,22 @@ import os
 import csv
 import errno
 import time
+import glob
 from six import string_types
 
 
 class CsvReader(object):
 
-    def __init__(self, file):
-        self.file = file
+    def __init__(self, path):
+        self.path = path
 
     def rows(self):
         try:
-            with open(self.file, "r", encoding='utf8') as f:
-                self.reader = csv.DictReader(f)
-                for row in self.reader:
-                    yield row
+            for file in glob.glob(self.path+'\*.csv'):
+                with open(file, "r", encoding='utf8') as f:
+                    self.reader = csv.DictReader(f)
+                    for row in self.reader:
+                        yield row
         except IOError as err:
             print("I/O error({0}): {1}".format(errno, os.strerror))
         return
