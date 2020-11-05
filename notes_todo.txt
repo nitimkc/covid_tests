@@ -4,9 +4,9 @@ Notes on "covid_Symptoms" project
 
 
 Part A
-- import data
-- run couple of model
-- grid search hyperparameter for each model
+chk- import data 
+chk- run couple of model
+chk- grid search hyperparameter for each model
 - select the best model based on a metric
 - save this best model for future use.
 

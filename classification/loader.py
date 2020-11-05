@@ -46,16 +46,27 @@ class CorpusLoader(object):
             split_y = [ [self.y[i] for i in sub_idx ] for sub_idx in self.get_idx() ]
             return split_y
 
-    def sets(self, set='X'):
-        X_dict = {}
-        y_dict = {}
-        for grp, X_grp, y_grp in zip(self.groups, self.documents(), self.labels()):
-            X_dict[grp] = X_grp
-            y_dict[grp] = y_grp
-        
-        train = [ X_dict[ get_key(X_dict, 'train')], y_dict[ get_key(y_dict, 'train')] ]
-        valid = [ X_dict[ get_key(X_dict, 'valid')], y_dict[ get_key(y_dict, 'valid')] ]
-        test  = [ X_dict[ get_key(X_dict, 'test')], y_dict[ get_key(y_dict, 'test')] ]
+    def sets(self):
+        if self.index is None:
+            train_ratio = 0.50
+            validation_ratio = 0.25
+            test_ratio = 0.25
+            X_train, X_test, y_train, y_test = tts(self.documents(), self.labels(), test_size=1 - train_ratio, random_state=42)
+            X_valid, X_test, y_valid, y_test = tts(X_test, y_test, test_size=test_ratio/(test_ratio + validation_ratio), random_state=42)
+            
+            train = [X_train, y_train]
+            valid = [X_valid, y_valid]
+            test = [X_test, y_test]
+        else:
+            X_dict = {}
+            y_dict = {}
+            for grp, X_grp, y_grp in zip(self.groups, self.documents(), self.labels()):
+                X_dict[grp] = X_grp
+                y_dict[grp] = y_grp
+            
+            train = [ X_dict[ get_key(X_dict, 'train')], y_dict[ get_key(y_dict, 'train')] ]
+            valid = [ X_dict[ get_key(X_dict, 'valid')], y_dict[ get_key(y_dict, 'valid')] ]
+            test  = [ X_dict[ get_key(X_dict, 'test')], y_dict[ get_key(y_dict, 'test')] ]
 
         return train, valid, test
 

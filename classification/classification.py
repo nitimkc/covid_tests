@@ -13,15 +13,16 @@
 # it runs multiple models using build.py and saves the scores of 
 # each of these models in results directory in file "results.json"
 
-# file path:
-# C:\Users\niti.mishra\Documents\2_TDMDAL\covid_tests\covid_tests
-###################################################################
+# Example run:
+# python classification.py C:\Users\XYZ\covid_tests data results
+# ###################################################################
 
 from pathlib import Path
 import os
 import csv
 import errno
 import json
+import pickle
 import logging
 import argparse 
 
@@ -57,17 +58,48 @@ if __name__ == '__main__':
     docs = list(data.rows())
     print('no. of patient records :', len(docs))
     
-    cols = ['cough', 'fever', 'sore_throat', 'shortness_of_breath', 'head_ache', 'sixtiesplus', 'Gender', 'contact', 'abroad']#, 'Validation']
+    cols = ['cough', 'fever', 'sore_throat', 'shortness_of_breath', 'head_ache', 'sixtiesplus', 'Gender', 'contact', 'abroad']
     X = [list(i.values()) for i in data.fields(cols) ]
     X_int = [[int(i) for i in elist] for elist in X ]
     y = list(data.fields('testresult')) # will label encode in build.py
+    
+    
+    # to save model and its scores
+    all_models = [] 
+    all_scores = []
+    # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\covid_tests\covid_tests\results')
+
+    # train the data and save test results as well as the model itself
+    # using predefined split
     split_set = list(data.fields('Validation'))
-
-    loader = CorpusLoader(X_int, y, idx=split_set) 
-
-    # all_scores = []
-    for scores in score_models(binary_models, loader):
-        # all_scores.append(scores)
+    loader = CorpusLoader(X_int, y, idx=split_set)
+    
+    for scores in score_models(binary_models, loader, split_idx=True, outpath=RESULTS):
+        all_models.append(scores['name']+".pkl")
+        all_scores.append(scores['auc'])
         result_filename = 'results.json'
-        with open(Path.joinpath(RESULTS,result_filename), 'a') as f:
+        with open(Path.joinpath(RESULTS, result_filename), 'a') as f:
             f.write(json.dumps(scores) + '\n')
+
+    # # train the data and save test results as well as the model itself
+    # # using cv
+    # loader = CorpusLoader(X_int, y, idx=None) 
+        
+    # for scores in score_models(binary_models, loader, k=10, outpath=RESULTS):
+    #     all_models.append(scores['name']+".pkl")
+    #     all_scores.append(scores['auc'])
+    #     result_filename = 'results_cv.json'
+    #     with open(Path.joinpath(RESULTS,result_filename), 'a') as f:
+    #         f.write(json.dumps(scores) + '\n')
+
+    # save the best model based on stored score
+    best_model_idx = all_scores.index(max(all_scores))
+    best_model = all_models[best_model_idx]
+    
+    # load the best model
+    with open(Path.joinpath(RESULTS, best_model), 'rb') as f: 
+        best_model = pickle.load(f)
+    
+    # save it as best_model.pkl
+    with open(Path.joinpath(RESULTS, "best_model.pkl"), 'wb') as f:
+                pickle.dump(best_model, f)
