@@ -130,4 +130,9 @@ def score_models(models, loader, split_idx=False, k=5, outpath=None):
 
             print("Model written out to {}".format(outpath))
 
+            with open(Path.joinpath(outpath, name + "_prob.pkl"), 'wb') as f:
+                pickle.dump(y_pred_prob, f)
+
+            print("Prediction probabilities written out to {}".format(outpath))
+
         yield scores

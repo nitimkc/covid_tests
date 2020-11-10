@@ -53,7 +53,7 @@ if __name__ == '__main__':
     record = [{vars[i]: vals[i] for i in range(len(vars))} , {vars[i]: vals[i] for i in range(len(vars))} ]
 
     # load the best model
-    RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\covid_tests\covid_tests\results')
+    RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
     with open(Path.joinpath(RESULTS, "best_model.pkl"), 'rb') as f: 
         best_model = pickle.load(f)
     vars = ['cough', 'fever', 'sorethroat', 'shortnessofbreath', 'headache', 'sixtiesplus', 'gender', 'contact', 'abroad']

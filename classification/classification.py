@@ -54,7 +54,7 @@ if __name__ == '__main__':
     print("Results : " , RESULTS)
 
     data = CsvReader( str(DATA) ) 
-    # data = CsvReader( str(r'C:\Users\niti.mishra\Documents\2_TDMDAL\covid_tests\covid_tests\data') )
+    # data = CsvReader( str(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\data') )
     docs = list(data.rows())
     print('no. of patient records :', len(docs))
     
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     # to save model and its scores
     all_models = [] 
     all_scores = []
-    # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\covid_tests\covid_tests\results')
+    # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
 
     # train the data and save test results as well as the model itself
     # using predefined split
@@ -75,10 +75,10 @@ if __name__ == '__main__':
     loader = CorpusLoader(X_int, y, idx=split_set)
     
     for scores in score_models(binary_models, loader, split_idx=True, outpath=RESULTS):
-        all_models.append(scores['name']+".pkl")
+        all_models.append(scores['name'])
         all_scores.append(scores['auc'])
         result_filename = 'results.json'
-        with open(Path.joinpath(RESULTS, result_filename), 'a') as f:
+        with open(Path.joinpath(RESULTS, (result_filename+".pkl") ), 'a') as f:
             f.write(json.dumps(scores) + '\n')
 
     # # train the data and save test results as well as the model itself
@@ -86,20 +86,24 @@ if __name__ == '__main__':
     # loader = CorpusLoader(X_int, y, idx=None) 
         
     # for scores in score_models(binary_models, loader, k=10, outpath=RESULTS):
-    #     all_models.append(scores['name']+".pkl")
+    #     all_models.append(scores['name'])
     #     all_scores.append(scores['auc'])
     #     result_filename = 'results_cv.json'
-    #     with open(Path.joinpath(RESULTS,result_filename), 'a') as f:
+    #     with open(Path.joinpath(RESULTS,(result_filename+".pkl")), 'a') as f:
     #         f.write(json.dumps(scores) + '\n')
 
     # save the best model based on stored score
     best_model_idx = all_scores.index(max(all_scores))
     best_model = all_models[best_model_idx]
     
-    # load the best model
-    with open(Path.joinpath(RESULTS, best_model), 'rb') as f: 
-        best_model = pickle.load(f)
+    # load the best model and best model probabilities
+    with open(Path.joinpath(RESULTS, (best_model+'.pkl')), 'rb') as f: 
+        model = pickle.load(f)
+    with open(Path.joinpath(RESULTS, best_model+'_prob.pkl'), 'rb') as f: 
+        prob = pickle.load(f)
     
-    # save it as best_model.pkl
+    # save above as best_model.pkl and best_model_prob.pkl
     with open(Path.joinpath(RESULTS, "best_model.pkl"), 'wb') as f:
-                pickle.dump(best_model, f)
+                pickle.dump(model, f)
+    with open(Path.joinpath(RESULTS, "best_model_prob.pkl"), 'wb') as f:
+                pickle.dump(prob, f)

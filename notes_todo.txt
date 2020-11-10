@@ -7,22 +7,25 @@ Part A
 chk- import data 
 chk- run couple of model
 chk- grid search hyperparameter for each model
-- select the best model based on a metric
-- save this best model for future use.
+- ?consider missing values as a new category
+chk - select the best model based on a metric
+chk - save this best model for future use.
 
 
 Part B
 - load the model and its attributes such that
 - it can take a new patient's record (symptoms, demographics) and 
 - spit out the probability of the patient being infected
-
+stas.percentileofscore(prob, pred_prob)
 
 Part C
 - building the interface such that
-- the characteristics of the patient can be added to the website
-- spit the probability that the patient is infected
+chk - the characteristics of the patient can be added to the website
+chk - 1. spit the probability that the patient is infected
+chk - 2. model percentile based on AUC (the percent of people below you)
+- ?3. Should the patient be tested
 
-
+??iframe 
 
 # Calculate Shapley values
 - Shapley value is the average marginal contribution of a feature value across all possible coalitions.
