@@ -4,7 +4,7 @@ import errno
 import time
 import glob
 from six import string_types
-
+import pandas as pd
 
 class CsvReader(object):
 
@@ -44,5 +44,13 @@ class CsvReader(object):
                     key: row.get(key, None)
                     for key in fields
                 }
-                
+
+    def dummies(self, field):
+        """
+        take the unique values of a field and convert them to dummy columns
+        """               
+        X_df =  pd.DataFrame(self.fields(field))
+        X_dummy = pd.get_dummies(X_df, drop_first=True)   
+
+        return X_dummy.to_dict('records')        
 

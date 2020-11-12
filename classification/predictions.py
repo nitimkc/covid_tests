@@ -21,10 +21,6 @@ import logging
 import argparse 
 import numpy as np
 
-from reader import CsvReader
-from loader import CorpusLoader
-from build import binary_models
-from build import score_models
 
 log = logging.getLogger("readability.readability")
 log.setLevel('WARNING')
@@ -49,14 +45,19 @@ if __name__ == '__main__':
     print("Results : " , RESULTS)
    
     # each new record must be converted into dictionary
-    vals = ['0', '1', '0', '0', '0', '1', '1', '0', '0']
-    record = [{vars[i]: vals[i] for i in range(len(vars))} , {vars[i]: vals[i] for i in range(len(vars))} ]
+    vars = ['cough', 'fever', 'sorethroat', 'shortnessofbreath', 'headache', 'sixtiesplus', 'gender', 'contact', 'abroad']
+    x1 = list(np.zeros(9))
+    x2 = list(np.ones(9))
+    x3 = [0,1,0,1,0,1,1,0,0]
+    vals = [x1, x2, x3]
+    record = [{vars[i]: x1[i] for i in range(len(vars))} , 
+              {vars[i]: x2[i] for i in range(len(vars))} ,
+              {vars[i]: x3[i] for i in range(len(vars))}]
 
     # load the best model
     RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
-    with open(Path.joinpath(RESULTS, "best_model.pkl"), 'rb') as f: 
+    with open(Path.joinpath(RESULTS, "RandomForestclassifier.pkl"), 'rb') as f: 
         best_model = pickle.load(f)
-    vars = ['cough', 'fever', 'sorethroat', 'shortnessofbreath', 'headache', 'sixtiesplus', 'gender', 'contact', 'abroad']
     
     # obtain the keys of the data dictionary
     # remove spaces, special characters from keys and lower cases 
@@ -67,13 +68,14 @@ if __name__ == '__main__':
         print(non_match_vars)
         print("Provide the missing variable in data and re-run")
 
-    X = [ [i[x] for x in vars] for i in record]
+    X = [ [int(i[x]) for x in vars] for i in record]
 
     X = np.array(X)
     if len(X.shape) == 1:
         X = X.reshape(1,-1)
     y_pred = best_model.predict( X )
     y_prob = best_model.predict_proba( X )[:,1]
+    print(best_model.classes_)
     
     import copy
     result = copy.deepcopy(record)
