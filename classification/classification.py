@@ -94,7 +94,9 @@ if __name__ == '__main__':
         with open(Path.joinpath(RESULTS, result_filename), 'a') as f:
             f.write(json.dumps(scores) + '\n')
     
-
+#########################################################################
+# Part 5
+#########################################################################
     # load all results
     all_scores = []
     with open(Path.joinpath(RESULTS, 'results.json'), 'r') as f: 
@@ -108,7 +110,6 @@ if __name__ == '__main__':
     best_model = names[best_model_idx]
     print('best_model is: ', best_model)
     
-
     # load the best model and its probabilities on test set
     with open(Path.joinpath(RESULTS, (best_model+'.pkl')), 'rb') as f: 
         model = pickle.load(f)
@@ -116,8 +117,8 @@ if __name__ == '__main__':
         prob = pickle.load(f)
     best_model_scores = all_scores[best_model_idx]
     
-    # save req all info of best model in the heroku app folder
-    APP_RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
+    # save req info of best model in the heroku app folder
+    # APP_RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
     with open(Path.joinpath(APP_RESULTS, "best_model.pkl"), 'wb') as f:
             pickle.dump(model, f)
     with open(Path.joinpath(APP_RESULTS, "best_model_prob.pkl"), 'wb') as f:

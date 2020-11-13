@@ -67,37 +67,20 @@ if __name__ == '__main__':
     x17 = [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0]	
     x18 = [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0]	
 
-    vals = ['x'+str(i) for i in range(1,19)]
-    record = [{vars[i]: x1[i] for i in range(len(vars))} , 
-              {vars[i]: x2[i] for i in range(len(vars))} ,
-              {vars[i]: x3[i] for i in range(len(vars))} ,
-              {vars[i]: x4[i] for i in range(len(vars))} ,
-              {vars[i]: x5[i] for i in range(len(vars))} ,
-              {vars[i]: x6[i] for i in range(len(vars))} ,
-              {vars[i]: x7[i] for i in range(len(vars))} ,
-              {vars[i]: x8[i] for i in range(len(vars))} ,
-              {vars[i]: x9[i] for i in range(len(vars))} ,
-              {vars[i]: x10[i] for i in range(len(vars))} ,
-              {vars[i]: x11[i] for i in range(len(vars))} ,
-              {vars[i]: x12[i] for i in range(len(vars))} ,
-              {vars[i]: x13[i] for i in range(len(vars))} ,
-              {vars[i]: x14[i] for i in range(len(vars))} ,
-              {vars[i]: x15[i] for i in range(len(vars))} ,
-              {vars[i]: x16[i] for i in range(len(vars))} ,
-              {vars[i]: x17[i] for i in range(len(vars))} ,
-              {vars[i]: x18[i] for i in range(len(vars))}]
+    vals = [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18]
+    record = [dict(zip(vars, i)) for i in vals]
     
     # obtain the keys of the data dictionary
     # remove spaces, special characters from keys and lower cases 
-    keys = [re.sub('[^a-zA-Z0-9 \n\.]','',i).lower() for i in record[0]]
+    keys = [re.sub('[^_a-zA-Z0-9 \n\.]','',i).lower() for i in record[0]]
     non_match_vars = set(vars) - set(keys)
     if (len(non_match_vars) > 0) :
         print("The following variables are missing in the data:")
         print(non_match_vars)
         print("Provide the missing variable in data and re-run")
 
+    # convert X to numpy array
     X = [ [int(i[x]) for x in vars] for i in record]
-
     X = np.array(X)
     if len(X.shape) == 1:
         X = X.reshape(1,-1)
@@ -108,6 +91,8 @@ if __name__ == '__main__':
     with open(Path.joinpath(RESULTS, "LogisticRegression.pkl"), 'rb') as f: 
         best_model = pickle.load(f)
     print(best_model)
+    
+    # make predictions on X
     y_pred = best_model.predict( X )
     y_prob = best_model.predict_proba( X )[:,1]
     print(best_model.classes_)
@@ -115,6 +100,8 @@ if __name__ == '__main__':
     for i in y_prob:
         print(i)
     
+
+    # save results as csv (both X and y)
     import copy
     result = copy.deepcopy(record)
     result = [{**item, 'prediction':i} for i,item in zip(y_pred, result)]
