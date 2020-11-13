@@ -75,46 +75,52 @@ if __name__ == '__main__':
     final_cols = cols + list(X_dummy[0].keys())
     X_dummy = [ list(i.values()) for i in data.dummies(catg_cols) ]
 
-    X = [ list(i.values()) for i in data.fields(cols) ]
-    
+    X = [ list(i.values()) for i in data.fields(cols) ] 
     X =[ i+j for i,j in zip(X, X_dummy) ]
     X_int =  [[int(i) for i in elist] for elist in X ]
     print('no of fields with None value:', sum([i.count(None) for i in X_int]))
     y = list(data.fields('testresult')) # will label encode in build.py
     
-    # to save model and its scores
-    all_models = [] 
-    all_scores = []
-    all_auc = []
-    # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
-
     # train the data and save test results as well as the model itself
     split_set = list(data.fields('Validation'))
     loader = CorpusLoader(X_int, y, idx=split_set) # using predefined split
     # loader = CorpusLoader(X_int, y, idx=None)    # using cv
 
+    # to save model and its scores
+    # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
     for scores in score_models(binary_models, loader, split_idx=True, outpath=RESULTS):
     # for scores in score_models(binary_models, loader, k=10, outpath=RESULTS):
-        all_models.append(scores['name'])
-        all_scores.append(scores)
-        all_auc.append(scores['auc'])
         result_filename = 'results.json'
         with open(Path.joinpath(RESULTS, result_filename), 'a') as f:
             f.write(json.dumps(scores) + '\n')
-
-    # save the best model based on stored score
-    auc = [i['auc'] for i in all_scores]
-    best_model = all_models[0]#all_models[auc.index(max(auc))]
     
-    # load the best model and best model probabilities
+
+    # load all results
+    all_scores = []
+    with open(Path.joinpath(RESULTS, 'results.json'), 'r') as f: 
+        for line in f:
+            all_scores.append(json.loads(line))
+
+    # find best model and its scores
+    aucs = [i['auc'] for i in all_scores]
+    names = [i['name'] for i in all_scores]
+    best_model_idx = aucs.index(max(aucs))
+    best_model = names[best_model_idx]
+    print('best_model is: ', best_model)
+    
+
+    # load the best model and its probabilities on test set
     with open(Path.joinpath(RESULTS, (best_model+'.pkl')), 'rb') as f: 
         model = pickle.load(f)
     with open(Path.joinpath(RESULTS, best_model+'_prob.pkl'), 'rb') as f: 
         prob = pickle.load(f)
+    best_model_scores = all_scores[best_model_idx]
     
-    # save above as best_model.pkl and best_model_prob.pkl in the app folder
-    # APP_RESULTS = r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model'
+    # save req all info of best model in the heroku app folder
+    APP_RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
     with open(Path.joinpath(APP_RESULTS, "best_model.pkl"), 'wb') as f:
-                pickle.dump(model, f)
+            pickle.dump(model, f)
     with open(Path.joinpath(APP_RESULTS, "best_model_prob.pkl"), 'wb') as f:
-                pickle.dump(prob, f)
+            pickle.dump(prob, f)
+    with open(Path.joinpath(APP_RESULTS, "best_model_score.pkl"), 'wb') as f:
+            pickle.dump(best_model_scores, f)

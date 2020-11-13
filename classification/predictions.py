@@ -46,20 +46,46 @@ if __name__ == '__main__':
    
     # each new record must be converted into dictionary
     vars = ['cough', 'fever', 'sorethroat', 'shortnessofbreath', 
-            'headache', 'sixtiesplus', 'gender', 'sixtiesplus_1', 
-            'gender_1', 'contact', 'abroad']
-    x1 = list(np.zeros(11))
-    x2 = list(np.ones(11))
-    x3 = [0,1,0,1,0,1,1,0,0,0,1]
-    vals = [x1, x2, x3]
+            'headache', 'contact', 'abroad', 
+            'sixtiesplus', 'gender', 'sixtiesplus_1', 'gender_1']
+    x1 = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1]	
+    x2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]	
+    x3 = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1]	
+    x4 = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]	
+    x5 = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0]	
+    x6 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]	
+    x7 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]	
+    x8 = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]	
+    x9 = [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0]	
+    x10 = [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1]	
+    x11 = [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1]	
+    x12 = [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1]	
+    x13 = [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0]	
+    x14 = [1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0]	
+    x15 = [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]	
+    x16 = [1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0]	
+    x17 = [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0]	
+    x18 = [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0]	
+
+    vals = ['x'+str(i) for i in range(1,19)]
     record = [{vars[i]: x1[i] for i in range(len(vars))} , 
               {vars[i]: x2[i] for i in range(len(vars))} ,
-              {vars[i]: x3[i] for i in range(len(vars))}]
-
-    # load the best model
-    RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
-    with open(Path.joinpath(RESULTS, "LogisticRegression.pkl"), 'rb') as f: 
-        best_model = pickle.load(f)
+              {vars[i]: x3[i] for i in range(len(vars))} ,
+              {vars[i]: x4[i] for i in range(len(vars))} ,
+              {vars[i]: x5[i] for i in range(len(vars))} ,
+              {vars[i]: x6[i] for i in range(len(vars))} ,
+              {vars[i]: x7[i] for i in range(len(vars))} ,
+              {vars[i]: x8[i] for i in range(len(vars))} ,
+              {vars[i]: x9[i] for i in range(len(vars))} ,
+              {vars[i]: x10[i] for i in range(len(vars))} ,
+              {vars[i]: x11[i] for i in range(len(vars))} ,
+              {vars[i]: x12[i] for i in range(len(vars))} ,
+              {vars[i]: x13[i] for i in range(len(vars))} ,
+              {vars[i]: x14[i] for i in range(len(vars))} ,
+              {vars[i]: x15[i] for i in range(len(vars))} ,
+              {vars[i]: x16[i] for i in range(len(vars))} ,
+              {vars[i]: x17[i] for i in range(len(vars))} ,
+              {vars[i]: x18[i] for i in range(len(vars))}]
     
     # obtain the keys of the data dictionary
     # remove spaces, special characters from keys and lower cases 
@@ -75,9 +101,19 @@ if __name__ == '__main__':
     X = np.array(X)
     if len(X.shape) == 1:
         X = X.reshape(1,-1)
+    
+    # load the best model
+    RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
+    # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
+    with open(Path.joinpath(RESULTS, "LogisticRegression.pkl"), 'rb') as f: 
+        best_model = pickle.load(f)
+    print(best_model)
     y_pred = best_model.predict( X )
     y_prob = best_model.predict_proba( X )[:,1]
     print(best_model.classes_)
+    print(y_pred)
+    for i in y_prob:
+        print(i)
     
     import copy
     result = copy.deepcopy(record)
