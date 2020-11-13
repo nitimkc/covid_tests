@@ -45,10 +45,12 @@ if __name__ == '__main__':
     print("Results : " , RESULTS)
    
     # each new record must be converted into dictionary
-    vars = ['cough', 'fever', 'sorethroat', 'shortnessofbreath', 'headache', 'sixtiesplus', 'gender', 'contact', 'abroad']
-    x1 = list(np.zeros(9))
-    x2 = list(np.ones(9))
-    x3 = [0,1,0,1,0,1,1,0,0]
+    vars = ['cough', 'fever', 'sorethroat', 'shortnessofbreath', 
+            'headache', 'sixtiesplus', 'gender', 'sixtiesplus_1', 
+            'gender_1', 'contact', 'abroad']
+    x1 = list(np.zeros(11))
+    x2 = list(np.ones(11))
+    x3 = [0,1,0,1,0,1,1,0,0,0,1]
     vals = [x1, x2, x3]
     record = [{vars[i]: x1[i] for i in range(len(vars))} , 
               {vars[i]: x2[i] for i in range(len(vars))} ,
@@ -56,7 +58,7 @@ if __name__ == '__main__':
 
     # load the best model
     RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
-    with open(Path.joinpath(RESULTS, "RandomForestclassifier.pkl"), 'rb') as f: 
+    with open(Path.joinpath(RESULTS, "LogisticRegression.pkl"), 'rb') as f: 
         best_model = pickle.load(f)
     
     # obtain the keys of the data dictionary

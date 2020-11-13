@@ -52,5 +52,4 @@ class CsvReader(object):
         X_df =  pd.DataFrame(self.fields(field))
         X_dummy = pd.get_dummies(X_df, drop_first=True)   
 
-        return X_dummy.to_dict('records')        
-
+        return X_dummy.to_dict('records')

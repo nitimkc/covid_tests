@@ -1,21 +1,28 @@
-###################################################################
+#########################################################################
 # To run this script in command line provide following arguments:
-#   1. path to project folder (MUST have the two directories below)
-#   2. name of directory that has the data files (csv file only)
-#   3. name of directory where results should be stored
+#   1. path to project folder. MUST have the two folders:
+#      - "data" folder containing data files (csv file only)
+#      - "results" folder to store each model info
+#   2. path to heroku app to store best model info. 
+#      ust have "model" folder inside
 
-# The script loads data from data directory, selects following columns -
-#  'Validation', 'testresult', 
-#  'cough', 'fever', 'sore_throat', 'shortness_of_breath', 
-#  'head_ache', 'sixtiesplus', 'Gender', 'contact', 'abroad'
-# and processes them through loader.py to obtain train, test and 
-# validation splits as specified in 'Validation' column. Finally,
-# it runs multiple models using build.py and saves the scores of 
-# each of these models in results directory in file "results.json"
+# This script 
+#   1. loads data from data directory and selects following columns:
+#      'Validation', 'testresult', 
+#      'cough', 'fever', 'sore_throat', 'shortness_of_breath', 
+#      'head_ache', 'sixtiesplus', 'Gender', 'contact', 'abroad'
+#   2. adds dummy variables for 'sixtiesplus', 'Gender'
+#   3. processes them through loader.py to obtain train, test and 
+#      validation splits as specified in 'Validation' column 
+#   4. Finally, runs multiple models using build.py and saves the 
+#      scores of each of thse in results folder in filename
+#      "results.json"
+#   5. Picks the best model based on "auc" score and saves in heroku 
+#      app folder
 
 # Example run:
-# python classification.py C:\Users\XYZ\covid_tests data results
-# ###################################################################
+# python classification.py C:\Users\XYZ\covid_tests C:\Users\XYZ\covid_app
+# #########################################################################
 
 from pathlib import Path
 import os
@@ -106,7 +113,7 @@ if __name__ == '__main__':
         prob = pickle.load(f)
     
     # save above as best_model.pkl and best_model_prob.pkl in the app folder
-    APP_RESULTS = r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model'
+    # APP_RESULTS = r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model'
     with open(Path.joinpath(APP_RESULTS, "best_model.pkl"), 'wb') as f:
                 pickle.dump(model, f)
     with open(Path.joinpath(APP_RESULTS, "best_model_prob.pkl"), 'wb') as f:
