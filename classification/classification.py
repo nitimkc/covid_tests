@@ -38,6 +38,9 @@ from loader import CorpusLoader
 from build import binary_models
 from build import score_models
 
+from buildNN import NNmodel
+from buildNN import score_NN 
+
 log = logging.getLogger("readability.readability")
 log.setLevel('WARNING')
 
@@ -89,6 +92,14 @@ if __name__ == '__main__':
     # to save model and its scores
     # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
     for scores in score_models(binary_models, loader, split_idx=True, outpath=RESULTS):
+        print(scores)
+    # for scores in score_models(binary_models, loader, k=10, outpath=RESULTS):
+        result_filename = 'results.json'
+        with open(Path.joinpath(RESULTS, result_filename), 'a') as f:
+            f.write(json.dumps(scores) + '\n')
+    
+    for scores in score_NN(NNmodel, loader, split_idx=True, outpath=RESULTS):
+        print(scores)
     # for scores in score_models(binary_models, loader, k=10, outpath=RESULTS):
         result_filename = 'results.json'
         with open(Path.joinpath(RESULTS, result_filename), 'a') as f:
@@ -101,6 +112,7 @@ if __name__ == '__main__':
     all_scores = []
     with open(Path.joinpath(RESULTS, 'results.json'), 'r') as f: 
         for line in f:
+            print(line)
             all_scores.append(json.loads(line))
 
     # find best model and its scores

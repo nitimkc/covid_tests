@@ -30,3 +30,28 @@ chk - 2. model percentile based on AUC (the percent of people below you)
 # Calculate Shapley values
 - Shapley value is the average marginal contribution of a feature value across all possible coalitions.
 - coalition being various combination of the amount of contribution from any given 
+
+
+# articles on GBT
+- https://educationalresearchtechniques.com/2019/01/14/gradient-boosting-regression-in-python/
+- https://www.datacareer.de/blog/parameter-tuning-in-gradient-boosting-gbm/
+- https://medium.com/all-things-ai/in-depth-parameter-tuning-for-gradient-boosting-3363992e9bae
+- https://www.analyticsvidhya.com/blog/2016/02/complete-guide-parameter-tuning-gradient-boosting-gbm-python/
+- https://machinelearningmastery.com/gradient-boosting-machine-ensemble-in-python/
+
+
+
+
+
+-	The values should be entered as “Yes”, “No”, “N/A”
+check: “Sixties plus” should be changed to “Age 60 or more”
+-	The input boxes should be aligned
+-	You should display (for now) three outputs arranged as follows:
+o	Predicted probability of COVID:                                                                                  86.69% 
+o	Probability Percentile (for patients exhibiting at least one symptom):       90.74%
+o	Model used :                                                                                                                      Random Forest
+o	Model Accuracy report:
+Sensitivity (True Positive Rate):                  80%
+Specificity : (True Negative Rate):             90%
+Accuracy:                                                             80%
+AUC                                                                       70%

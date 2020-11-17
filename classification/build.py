@@ -27,9 +27,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score
 
 binary_models = []
-# binary_models.append( LogisticRegression(random_state = 42) )
-# binary_models.append( RandomForestClassifier(random_state = 42) )
-# binary_models.append( SVC(random_state = 42, probability=True) )
+binary_models.append( LogisticRegression(random_state = 42) )
+binary_models.append( RandomForestClassifier(random_state = 42) )
+binary_models.append( SVC(random_state = 42, probability=True) )
 # binary_models.append( SGDClassifier(random_state = 42) )
 # binary_models.append( MultinomialNB(random_state = 42) )
 # binary_models.append( GaussianNB(random_state = 42) )
@@ -37,16 +37,16 @@ binary_models.append( GradientBoostingClassifier(random_state = 42) )
 
 
 parameters = [
-    # {'clf__C': ( np.logspace(-5, 1, 5) ),
-    #     'clf__penalty': ['l1', 'l2', 'none'] # regularization paramter
-    #     },
-    # {'clf__max_depth': [int(x) for x in np.linspace(10, 110, num = 11)],
-    #     'clf__min_samples_split': [2, 5, 10],
-    #     'clf__min_samples_leaf': [1, 2, 4]
-    #     },
-    # {'clf__C': [0.001, 0.01, 0.1, 1, 10],
-    #     'clf__gamma': [0.001, 0.01, 0.1, 1]
-    #     },
+    {'clf__C': ( np.logspace(-5, 1, 5) ),
+        'clf__penalty': ['l1', 'l2', 'none'] # regularization paramter
+        },
+    {'clf__max_depth': [int(x) for x in np.linspace(10, 110, num = 11)],
+        'clf__min_samples_split': [2, 5, 10],
+        'clf__min_samples_leaf': [1, 2, 4]
+        },
+    {'clf__C': [0.001, 0.01, 0.1, 1, 10],
+        'clf__gamma': [0.001, 0.01, 0.1, 1]
+        },
     {'clf__n_estimators':range(20,41,10), #40
         'clf__max_depth':range(5,10,2), #7
         'clf__max_features':range(7,10,2),
