@@ -1,4 +1,6 @@
 data/
+readings/
 .ipynb_checkpoints/
 *.txt
-results/*
+results/*.xlsx
+results/*/*
