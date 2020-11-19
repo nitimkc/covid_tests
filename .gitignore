@@ -4,3 +4,4 @@ readings/
 *.txt
 results/*.xlsx
 results/*/*
+jupyter/
