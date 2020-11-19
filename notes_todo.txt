@@ -40,8 +40,17 @@ chk - 2. model percentile based on AUC (the percent of people below you)
 - https://machinelearningmastery.com/gradient-boosting-machine-ensemble-in-python/
 
 
+        <p>
+             <label>Cough</label>
+             <select id = "myList">
+               <option value = 1>Yes</option>
+               <option value = 0>No</option>
+               <option value = 2>NA</option>
+             </select>
+          </p>
 
-
+#### Open jupyter check new metrics
+#### add it to the app
 
 -	The values should be entered as “Yes”, “No”, “N/A”
 check: “Sixties plus” should be changed to “Age 60 or more”

@@ -91,12 +91,12 @@ if __name__ == '__main__':
 
     # to save model and its scores
     # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
-    for scores in score_models(binary_models, loader, split_idx=True, outpath=RESULTS):
-        print(scores)
-    # for scores in score_models(binary_models, loader, k=10, outpath=RESULTS):
-        result_filename = 'results.json'
-        with open(Path.joinpath(RESULTS, result_filename), 'a') as f:
-            f.write(json.dumps(scores) + '\n')
+    # for scores in score_models(binary_models, loader, split_idx=True, outpath=RESULTS):
+    #     print(scores)
+    # # for scores in score_models(binary_models, loader, k=10, outpath=RESULTS):
+    #     result_filename = 'results.json'
+    #     with open(Path.joinpath(RESULTS, result_filename), 'a') as f:
+    #         f.write(json.dumps(scores) + '\n')
     
     for scores in score_NN(NNmodel, loader, split_idx=True, outpath=RESULTS):
         print(scores)

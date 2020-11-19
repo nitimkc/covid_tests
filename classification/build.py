@@ -24,36 +24,36 @@ from sklearn.naive_bayes import GaussianNB
 
 from sklearn.pipeline import Pipeline
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score, confusion_matrix 
 
 binary_models = []
 binary_models.append( LogisticRegression(random_state = 42) )
-binary_models.append( RandomForestClassifier(random_state = 42) )
-binary_models.append( SVC(random_state = 42, probability=True) )
+# binary_models.append( RandomForestClassifier(random_state = 42) )
+# binary_models.append( SVC(random_state = 42, probability=True) )
+# binary_models.append( GradientBoostingClassifier(random_state = 42) )
 # binary_models.append( SGDClassifier(random_state = 42) )
 # binary_models.append( MultinomialNB(random_state = 42) )
 # binary_models.append( GaussianNB(random_state = 42) )
-binary_models.append( GradientBoostingClassifier(random_state = 42) )
 
 
 parameters = [
     {'clf__C': ( np.logspace(-5, 1, 5) ),
         'clf__penalty': ['l1', 'l2', 'none'] # regularization paramter
         },
-    {'clf__max_depth': [int(x) for x in np.linspace(10, 110, num = 11)],
-        'clf__min_samples_split': [2, 5, 10],
-        'clf__min_samples_leaf': [1, 2, 4]
-        },
-    {'clf__C': [0.001, 0.01, 0.1, 1, 10],
-        'clf__gamma': [0.001, 0.01, 0.1, 1]
-        },
-    {'clf__n_estimators':range(20,41,10), #40
-        'clf__max_depth':range(5,10,2), #7
-        'clf__max_features':range(7,10,2),
-        'clf__min_samples_split':range(700,1001,200), #700
-        'clf__learning_rate':[0.01,.1], #0.1,
-        'clf__subsample':[0.6,0.7,0.8], #0.6
-        }
+    # {'clf__max_depth': [int(x) for x in np.linspace(10, 110, num = 11)],
+    #     'clf__min_samples_split': [2, 5, 10],
+    #     'clf__min_samples_leaf': [1, 2, 4]
+    #     },
+    # {'clf__C': [0.001, 0.01, 0.1, 1, 10],
+    #     'clf__gamma': [0.001, 0.01, 0.1, 1]
+    #     },
+    # {'clf__n_estimators':range(20,41,10), #40
+    #     'clf__max_depth':range(5,10,2), #7
+    #     'clf__max_features':range(7,10,2),
+    #     'clf__min_samples_split':range(700,1001,200), #700
+    #     'clf__learning_rate':[0.01,.1], #0.1,
+    #     'clf__subsample':[0.6,0.7,0.8], #0.6
+    #     }
 ]
 
  
@@ -110,6 +110,7 @@ def score_models(models, loader, split_idx=False, k=5, outpath=None):
         y_pred_prob = best_model.predict_proba(X_test)
 
         # y_valid_pred = best_model.predict(X_valid)
+        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
 
         # save results
         scores = {
@@ -120,6 +121,8 @@ def score_models(models, loader, split_idx=False, k=5, outpath=None):
             'accuracy': accuracy_score(y_test, y_pred),
             'precision': precision_score(y_test, y_pred, average='weighted'),
             'recall': recall_score(y_test, y_pred, average='weighted'),
+            'sensitivity': tp/(tp+fn),
+            'specificity': tn/(tn+fp),
             # 'auc': roc_auc_score(y_test, y_pred, average='weighted'),
             'auc': roc_auc_score(y_test, y_pred_prob[:, 1], average='weighted'),
             'f1_test': f1_score(y_test, y_pred, average='weighted'),

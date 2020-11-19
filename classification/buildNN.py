@@ -17,7 +17,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.wrappers.scikit_learn import KerasClassifier
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score, confusion_matrix 
 
 
 # Function to create model, required for KerasClassifier
@@ -98,6 +98,8 @@ def score_NN(model, loader, split_idx=False, k=5, outpath=None):
     # save results
     name = '2 layer NN'
     coef = list([None])
+    tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+
     scores = {
         'time': time.time() - start,
         'name': name,
@@ -106,6 +108,8 @@ def score_NN(model, loader, split_idx=False, k=5, outpath=None):
         'accuracy': accuracy_score(y_test, y_pred),
         'precision': precision_score(y_test, y_pred, average='weighted'),
         'recall': recall_score(y_test, y_pred, average='weighted'),
+        'sensitivity': tp/(tp+fn),
+        'specificity': tn/(tn+fp),
         'auc': roc_auc_score(y_test, y_pred_prob[:, 1], average='weighted'),
         'f1_test': f1_score(y_test, y_pred, average='weighted'),
         'coef': list(coef),
