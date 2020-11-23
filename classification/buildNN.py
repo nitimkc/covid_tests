@@ -24,7 +24,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 def create_NNmodel():
     # create model
     model = Sequential()
-    model.add(Dense(6, input_dim=11, activation='relu')) # first layer
+    model.add(Dense(6, input_dim=13, activation='relu')) # first layer
     model.add(Dense(3, activation='relu'))                       # second layer
     model.add(Dense(1, activation='sigmoid'))                    # output layer
     # Compile model

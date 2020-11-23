@@ -10,8 +10,9 @@
 #   1. loads data from data directory and selects following columns:
 #      'Validation', 'testresult', 
 #      'cough', 'fever', 'sore_throat', 'shortness_of_breath', 
-#      'head_ache', 'sixtiesplus', 'Gender', 'contact', 'abroad'
-#   2. adds dummy variables for 'sixtiesplus', 'Gender'
+#      'head_ache', 'sixtiesplus', 'Gender', 
+#   2. adds dummy variables for:
+#      'sixtiesplus', 'Gender', 'contact', 'abroad'
 #   3. processes them through loader.py to obtain train, test and 
 #      validation splits as specified in 'Validation' column 
 #   4. Finally, runs multiple models using build.py and saves the 
@@ -71,8 +72,8 @@ if __name__ == '__main__':
     docs = list(data.rows())
     print('no. of patient records :', len(docs))
     
-    cols = ['cough', 'fever', 'sore_throat', 'shortness_of_breath', 'head_ache', 'contact', 'abroad']
-    catg_cols = ['sixtiesplus', 'Gender']
+    cols = ['cough', 'fever', 'sore_throat', 'shortness_of_breath', 'head_ache']
+    catg_cols = ['sixtiesplus', 'Gender', 'contact', 'abroad']
 
     X_dummy = data.dummies(catg_cols)
     final_cols = cols + list(X_dummy[0].keys())
@@ -82,8 +83,10 @@ if __name__ == '__main__':
     X =[ i+j for i,j in zip(X, X_dummy) ]
     X_int =  [[int(i) for i in elist] for elist in X ]
     print('no of fields with None value:', sum([i.count(None) for i in X_int]))
+
     y = list(data.fields('testresult')) # will label encode in build.py
-    
+    # print('no of target with None value:', sum([i.count(None) for i in y]))
+
     # train the data and save test results as well as the model itself
     split_set = list(data.fields('Validation'))
     loader = CorpusLoader(X_int, y, idx=split_set) # using predefined split
@@ -91,19 +94,19 @@ if __name__ == '__main__':
 
     # to save model and its scores
     # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
-    # for scores in score_models(binary_models, loader, split_idx=True, outpath=RESULTS):
-    #     print(scores)
-    # # for scores in score_models(binary_models, loader, k=10, outpath=RESULTS):
-    #     result_filename = 'results.json'
-    #     with open(Path.joinpath(RESULTS, result_filename), 'a') as f:
-    #         f.write(json.dumps(scores) + '\n')
-    
-    for scores in score_NN(NNmodel, loader, split_idx=True, outpath=RESULTS):
-        print(scores)
+    for scores in score_models(binary_models, loader, split_idx=True, outpath=RESULTS):
     # for scores in score_models(binary_models, loader, k=10, outpath=RESULTS):
+        print(scores)
         result_filename = 'results.json'
         with open(Path.joinpath(RESULTS, result_filename), 'a') as f:
             f.write(json.dumps(scores) + '\n')
+    
+    # for scores in score_NN(NNmodel, loader, split_idx=True, outpath=RESULTS):
+    # # for scores in score_models(binary_models, loader, k=10, outpath=RESULTS):
+    #     print(scores)
+    #     result_filename = 'results.json'
+    #     with open(Path.joinpath(RESULTS, result_filename), 'a') as f:
+    #         f.write(json.dumps(scores) + '\n')
     
 #########################################################################
 # Part 5

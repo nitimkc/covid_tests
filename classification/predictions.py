@@ -45,29 +45,11 @@ if __name__ == '__main__':
     print("Results : " , RESULTS)
    
     # each new record must be converted into dictionary
-    vars = ['cough', 'fever', 'sorethroat', 'shortnessofbreath', 
-            'headache', 'contact', 'abroad', 
-            'sixtiesplus', 'gender', 'sixtiesplus_1', 'gender_1']
-    x1 = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1]	
-    x2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]	
-    x3 = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1]	
-    x4 = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]	
-    x5 = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0]	
-    x6 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]	
-    x7 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]	
-    x8 = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]	
-    x9 = [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0]	
-    x10 = [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1]	
-    x11 = [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1]	
-    x12 = [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1]	
-    x13 = [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0]	
-    x14 = [1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0]	
-    x15 = [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]	
-    x16 = [1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0]	
-    x17 = [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0]	
-    x18 = [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0]	
-
-    vals = [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18]
+    vars = ['cough', 'fever', 'sorethroat', 'shortnessofbreath', 'headache',
+            'sixtiesplus', 'sixtiesplus_1',  'gender', 'gender_1',
+            'contact', 'contact_1', 'abroad', 'abroad_1', ]
+    X = [0,0,0,1,1,0,0,1,0,0,1,0,1]
+    vals = [X]
     record = [dict(zip(vars, i)) for i in vals]
     
     # obtain the keys of the data dictionary
@@ -88,7 +70,7 @@ if __name__ == '__main__':
     # load the best model
     RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
     # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
-    with open(Path.joinpath(RESULTS, "LogisticRegression.pkl"), 'rb') as f: 
+    with open(Path.joinpath(RESULTS, "best_model.pkl"), 'rb') as f: 
         best_model = pickle.load(f)
     print(best_model)
     
