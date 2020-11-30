@@ -13,6 +13,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import PredefinedSplit
+import tensorflow as tf
+import keras
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.wrappers.scikit_learn import KerasClassifier
@@ -21,19 +23,13 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 
 # Function to create model, required for KerasClassifier
-def create_NNmodel():
-    # create model
+def create_NNmodel(n_feat=11):
     model = Sequential()
-    model.add(Dense(6, input_dim=13, activation='relu')) # first layer
+    model.add(Dense(6, input_dim=n_feat, activation='relu')) # first layer
     model.add(Dense(3, activation='relu'))                       # second layer
     model.add(Dense(1, activation='sigmoid'))                    # output layer
-    # Compile model
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
-
-# create model
-np.random.seed(42)
-NNmodel = KerasClassifier(build_fn=create_NNmodel, verbose=1)
 
 # grid search parameters
 parameters = [
@@ -45,7 +41,8 @@ parameters = [
     },
 ]
 
-def score_NN(model, loader, split_idx=False, k=5, outpath=None):
+
+def score_NN(loader, split_idx=False, k=5, outpath=None):
     
     train, valid, test = loader.sets()
     X_train, y_train = train[0], train[1]
@@ -63,8 +60,10 @@ def score_NN(model, loader, split_idx=False, k=5, outpath=None):
     y_valid = labels.fit_transform(y_valid)
     y_test = labels.fit_transform(y_test)
 
+    # create model
+    np.random.seed(0)
     pipe = Pipeline([
-        ('clf', model),
+        ('clf', KerasClassifier(build_fn=create_NNmodel, n_feat=len(X_train[0]), verbose=1, )),
         ])
 
     # Create gridsearch with specified valid set
@@ -96,7 +95,7 @@ def score_NN(model, loader, split_idx=False, k=5, outpath=None):
     y_pred_prob = model.predict_proba(np.array(X_test))
 
     # save results
-    name = '2 layer NN'
+    name = '2LayerNN'
     coef = list([None])
     tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
 

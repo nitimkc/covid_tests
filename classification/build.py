@@ -17,47 +17,42 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.linear_model import SGDClassifier
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.naive_bayes import GaussianNB
-# from sklearn.neighbors import KNeighborsClassifier
 
 from sklearn.pipeline import Pipeline
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score, confusion_matrix 
 
 binary_models = []
-binary_models.append( LogisticRegression(random_state = 42) )
-binary_models.append( RandomForestClassifier(random_state = 42) )
-binary_models.append( SVC(random_state = 42, probability=True) )
-binary_models.append( GradientBoostingClassifier(random_state = 42) )
-# binary_models.append( SGDClassifier(random_state = 42) )
-# binary_models.append( MultinomialNB(random_state = 42) )
-# binary_models.append( GaussianNB(random_state = 42) )
+binary_models.append( LogisticRegression(random_state = 0, penalty='none') )
+binary_models.append( RandomForestClassifier(random_state = 0) )
+# binary_models.append( SVC(random_state = 42, probability=True) )
+binary_models.append( GradientBoostingClassifier(random_state = 0) )
 
 
 parameters = [
     {'clf__C': ( np.logspace(-5, 1, 5) ),
-        'clf__penalty': ['l1', 'l2', 'none'] # regularization paramter
+        # 'clf__penalty': ['l1', 'l2', 'none'] # regularization paramter
         },
-    {'clf__max_depth': [int(x) for x in np.linspace(10, 110, num = 11)],
-        'clf__min_samples_split': [2, 5, 10],
-        'clf__min_samples_leaf': [1, 2, 4]
+    {'clf__n_estimators':range(67,88,4), #67 Number of Trees in the Forest:
+        'clf__max_depth': range(10,25,4), # 10 Minimum Splits per Tree:
+        'clf__min_samples_split': range(6,13,2), #109 Minimum Size Split
+        'clf__max_features': range(5,11,2), #9
+        # 'clf__min_samples_leaf': [1, 2, 4],
         },
-    {'clf__C': [0.001, 0.01, 0.1, 1, 10],
-        'clf__gamma': [0.001, 0.01, 0.1, 1]
-        },
-    {'clf__n_estimators':range(20,41,10), #40
-        'clf__max_depth':range(5,10,2), #7
-        'clf__max_features':range(7,10,2),
-        'clf__min_samples_split':range(700,1001,200), #700
-        'clf__learning_rate':[0.01,.1], #0.1,
-        'clf__subsample':[0.6,0.7,0.8], #0.6
+    # {'clf__C': [0.001, 0.01, 0.1, 1, 10],
+    #     'clf__gamma': [0.001, 0.01, 0.1, 1]
+    #     },
+    {'clf__n_estimators':range(70,88,4), #86
+        'clf__max_depth':range(12,25,4), #20
+        # 'clf__min_samples_split':range(12,25,4),
+        # 'clf__max_features':range(7,10,2),
+        # 'clf__learning_rate':[0.01,.1], #0.1,
+        # 'clf__subsample':[0.6,0.7,0.8], #0.6
         }
 ]
 
  
-def score_models(models, loader, split_idx=False, k=5, outpath=None):
+def score_models(models, loader, split_idx=False, k=5, features=None, outpath=None):
     
     train, valid, test = loader.sets()
     X_train, y_train = train[0], train[1]
@@ -76,6 +71,9 @@ def score_models(models, loader, split_idx=False, k=5, outpath=None):
     y_test = labels.fit_transform(y_test)
 
     names = [str(i).split('(')[0] for i in models]
+    # model = binary_models[0]
+    # name = str(model).split('(')[0]
+    # params = parameters[0]
     for model, name, params in zip(models, names, parameters):
         print(model, '\n', name, '\n', params)  
         
@@ -88,9 +86,9 @@ def score_models(models, loader, split_idx=False, k=5, outpath=None):
             # Create a list where train data indices are -1 and validation data indices are 0
             test_fold = [-1 for i in range(n_Xtrn)] + [0 for i in range(n_Xval)]
             ps = PredefinedSplit(test_fold=test_fold)
-            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=ps, scoring='roc_auc')
+            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=ps)#, scoring='roc_auc')
         else:
-            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=k, scoring='roc_auc')
+            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=k)#, scoring='roc_auc')
         
         start = time.time()
         best_model = grid_search.fit(X_train+X_valid, np.concatenate( (y_train,y_valid)))
@@ -100,16 +98,31 @@ def score_models(models, loader, split_idx=False, k=5, outpath=None):
         print(best_param)
         print(best_score)
         print(best_estimator)
+
+        # best_model = GradientBoostingClassifier(loss='deviance', learning_rate=0.1, n_estimators=86, subsample=1, 
+        #                                         criterion='mae', min_samples_split=109, min_samples_leaf=109,
+        #                                         min_weight_fraction_leaf=0.0, max_depth=20, min_impurity_decrease=0.0,
+        #                                         min_impurity_split=None, random_state=42, max_features=9)
+        # best_model.fit(X_train+X_valid, np.concatenate( (y_train,y_valid)))
+        # best_model.get_params()
+
         #  retrain it on the entire dataset
-        if name=='LogisticRegression':
-            coef = np.concatenate((best_estimator.intercept_ , best_estimator.coef_[0]))
-        else:
-            coef = list([None])
-        
+        coef = []
+        if features:
+            if name=='LogisticRegression':
+                coef.append( dict(zip(['intercept']+features, np.concatenate((best_estimator.intercept_ ,best_estimator.coef_[0])))) )
+                # coef = np.concatenate((best_estimator.intercept_ , best_estimator.coef_[0]))
+            else:
+                coef.append( dict(zip(features, best_estimator.feature_importances_)) )
+
         y_pred = best_model.predict(X_test)
         y_pred_prob = best_model.predict_proba(X_test)
+        
+        # X_int = np.array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0]).reshape(1,-1)
+        # X_int = np.array([1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0]).reshape(1,-1)
+        # y_pred_prob = best_model.predict_proba(X_int)
+        # print(y_pred_prob[:, 1])
 
-        # y_valid_pred = best_model.predict(X_valid)
         tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
 
         # save results
@@ -119,15 +132,14 @@ def score_models(models, loader, split_idx=False, k=5, outpath=None):
             'model': str(best_estimator),
             'size': [len(X_train), len(X_valid), len(X_test)],
             'accuracy': accuracy_score(y_test, y_pred),
-            'precision': precision_score(y_test, y_pred, average='weighted'),
-            'recall': recall_score(y_test, y_pred, average='weighted'),
+            'precision': precision_score(y_test, y_pred),
+            'recall': recall_score(y_test, y_pred),
             'sensitivity': tp/(tp+fn),
             'specificity': tn/(tn+fp),
-            # 'auc': roc_auc_score(y_test, y_pred, average='weighted'),
-            'auc': roc_auc_score(y_test, y_pred_prob[:, 1], average='weighted'),
-            'f1_test': f1_score(y_test, y_pred, average='weighted'),
-            # 'f1_valid': f1_score(y_valid, y_valid_pred, average='weighted'),
-            'coef': list(coef),
+            'auc': roc_auc_score(y_test, y_pred_prob[:, 1]),
+            'f1_test': f1_score(y_test, y_pred),
+            'coef': coef,
+            'best_param': best_param,
         }
         
         print("{" + "\n".join("{!r}: {!r},".format(k, v) for k, v in scores.items()) + "}")
