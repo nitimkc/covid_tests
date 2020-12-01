@@ -1,0 +1,5 @@
+{
+'cols' : ['cough', 'fever', 'sore_throat', 'shortness_of_breath', 'head_ache', 'Sixties_1', 'Sixties_2', 'Gender_1', 'Gender_2', 'contact_1', 'contact_2'],
+'catg_cols':None,
+'target':'testresult'
+}

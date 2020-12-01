@@ -1,7 +1,7 @@
 data/
 readings/
 .ipynb_checkpoints/
-*.txt
+notes_todo.txt
 results/*.xlsx
 results/*/*
 jupyter/
