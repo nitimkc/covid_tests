@@ -1,26 +1,33 @@
 ###################################################################
 # To run this script in command line provide following arguments:
-#   1. -
-#   2. -
-#   3. -
+#   1. - path to folder where the data to make predictions exists
+#   2. - path to folder where the best model info is stored
 
-# The script loads -----
+# The script 
+# 1. loads data for which prediction is to be made
+# 2. loads 'data_info_txt' that specified the columns to use
+#     as regular and/or categorical and target
+# 3. loads information on best model: model, probabilities and scores
+# 4. makes predictions based on above model and saves the prediction 
+#    probabilities and percentiles along with the original data (as csv)
+#    in "predictions" folder under same directory as the data
 
 # Example run:
-# python classification.py C:\Users\XYZ\covid_tests 
-# ###################################################################
+# python prediction.py C:\Users\XYZ\best_model C:\Users\XYZ\covid_tests 
+# #########################################################################
 
 from pathlib import Path
+import sys
 import os
+import ast
 import csv
-import re
-import errno
-import json
 import pickle
 import logging
-import argparse 
+import argparse
 import numpy as np
+import pandas as pd
 from scipy import stats
+from reader import CsvReader
 
 log = logging.getLogger("readability.readability")
 log.setLevel('WARNING')
@@ -30,69 +37,80 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="""
     Creates path profiles from provided path, data directory and results directory
     """)
-    parser.add_argument("root_dir", help="Main directory of the project")
-    parser.add_argument("data_dir", help="Directory where the data is stored")
-    parser.add_argument("results_dir", help="Directory to store results")
-
+    parser.add_argument("predictiondata_dir", help="Directory where data (in csv) and information of which columns to use (in .txt) is stored")
+    parser.add_argument("model_dir", help="Heroku app directory path where the best model info is stored")
     args = parser.parse_args()
 
-    ROOT = Path(args.root_dir)
-    DATA = Path.joinpath(ROOT, args.data_dir)
-    RESULTS = Path.joinpath(ROOT, args.results_dir)
+    DATA = Path(args.predictiondata_dir)
+    MODEL = Path(args.model_dir)
 
-    print("Main : " , ROOT)
-    print("Data : " , DATA)
-    print("Results : " , RESULTS)
-   
-    # each new record must be converted into dictionary
-    input_vars = ['No','No','No','Yes','No','Below 60','Female','No','No',]
-    # input_vars = ['Yes','Yes','Yes','Yes','No','Below 60','Female','Yes','Yes',]
-    reg_vars = ['cough', 'fever', 'sorethroat', 'shortnessofbreath', 'headache']
-    dummy_vars = ['sixtiesplus', 'gender', 'contact', 'abroad',]
-    record = dict(zip(reg_vars+dummy_vars, input_vars))
-        
-    map_reg_vals = {'Yes':1, 'No':0}
-    map_dummy_vals = {'Yes':[1,0], 'No':[0,0],'Unknown':[0,1],
-                        'Below 60':[0,0], 'Above 60':[1,0], 
-                        'Male':[0,0], 'Female':[1,0],}
-
-    reg_X = [map_reg_vals.get(j,j)  for i,j in record.items() if i in reg_vars]
-    dummy_X = [map_dummy_vals.get(j,j)  for i,j in record.items() if i in dummy_vars]
-    X = reg_X + dummy_X
-    
-    X_all = []
-    if sum(X[:5])==0:
-        print("At least one symptom must be present")
+    # check if directories exists
+    if ( (DATA.exists()) and (MODEL.exists()) ):
+        print("Data : " , DATA)
+        print("Best model : " , MODEL)
     else:
-        for i in X:
-            if type(i)==list:
-                X_all.extend(i)
-            else:
-                X_all.append(i)
-
-        # prepare X for sklearn model
-        X_int = np.array(X_all)
-        if len(X_int.shape) == 1:
-            X_int = X_int.reshape(1,-1)
-        y_pred_prob = best_model.predict_proba(X_int)
-        print(y_pred_prob[:, 1])
-        
-        # load the best model
-        RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')
-        with open(Path.joinpath(RESULTS, "LogisticRegression.pkl"), 'rb') as f:
-        # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
-        # with open(Path.joinpath(RESULTS, "best_model.pkl"), 'rb') as f: 
-            best_model = pickle.load(f)
-        print(best_model)
-        
-        # pass X to predict y
-        X_int = np.array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0]).reshape(1,-1)        # pass X to predict y
-        y = best_model.predict_proba( X_int )[:,1]*100
-        print(X_int, y)
-
-        X_int = np.array([1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0]).reshape(1,-1)
-        # pass X to predict y
-        y = best_model.predict_proba( X_int )[:,1]*100
-        print(X_int, y)
+        sys.exit('listofitems not long enough')
+   
+    # 1. read data
+    # DATA = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\predictiondata')
+    data = CsvReader( str(DATA) ) 
+    docs = list(data.rows())
+    print('no. of patient records :', len(docs))
     
+    # 2. read file specifying column names to select from data
+    info_files = [f for f in os.listdir(DATA) if f.endswith(".txt")]
+    data_info = {}
+    if 'data_info.txt' not in info_files:
+        print("file: 'data_info.txt' not in info folder")
+    else:
+        f = open(Path.joinpath(DATA, 'data_info.txt'),'r')
+        contents = f.read()
+        data_info = ast.literal_eval(contents)
+        f.close()
+    cols = data_info['cols']
+    catg_cols = data_info['catg_cols']
+    target = data_info['target']
 
+    # # 2. select data of columns specified above
+    # X = [ list(i.values()) for i in data.fields(cols) ] 
+    # final_cols = cols
+
+    # # 2. determine if any columns needs to be treated as categorical
+    # if catg_cols is not None:
+    #     X_dummy = data.dummies(catg_cols)
+    #     final_cols = cols + list(X_dummy[0].keys())
+    #     X_dummy = [ list(i.values()) for i in data.dummies(catg_cols) ]
+    #     X =[ i+j for i,j in zip(X, X_dummy) ]
+
+    # # 2. convert any string values to float
+    # X_int =  [[float(i) for i in elist] for elist in X ]
+    # print('no of fields with None value:', sum([i.count(None) for i in X_int]))
+    # X_int.append([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0])
+    
+    # # 2. remove asymptomatic data
+    # X_int = [i for i in X_int if sum(i[:5])>0]
+
+    # # 3. load best model info
+    # # MODEL = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
+    # with open(Path.joinpath(MODEL, "best_model.pkl"), 'rb') as f: 
+    #     best_model = pickle.load(f)
+    # print(best_model['clf'])
+    # with open(Path.joinpath(MODEL, "best_model_prob.pkl"), 'rb') as f:
+    #     prob = pickle.load(f) 
+    # with open(Path.joinpath(MODEL, "best_model_score.pkl"), 'rb') as f:
+    #     score = pickle.load(f) 
+    
+    # # 3. pass X to predict y
+    # y = best_model.predict_proba( X_int )[:,1]
+    # y_percentile = []
+    # for i in y: 
+    #     y_percentile.append( np.round( stats.percentileofscore(prob[:, 1], i), 1 ))
+
+    # result = pd.DataFrame(X_int, columns=cols)
+    # result['prediction_probability'] = y
+    # result['prediction_percentile'] = y_percentile
+    
+    # filepath = Path.joinpath(DATA, 'predictions', 'predictions.csv')
+    # filepath.parent.mkdir(parents=True, exist_ok=True)
+    # result.to_csv(filepath, index=False)
+    # print('model predictions saved to', filepath)

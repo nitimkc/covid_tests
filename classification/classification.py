@@ -1,3 +1,31 @@
+#########################################################################
+# To run this script in command line provide following arguments:
+#   1. path to project folder. MUST have the three folders:
+#      - 1. "data" folder containing data files (csv file only)
+#      - 2. "info" folder containing information on which columns to use
+#      - 3. "results" folder to store each model info
+#   2. path to heroku app to store best model info
+#      Must have "model" folder inside
+
+# This script 
+#   1. loads data in csv file from "data" directory using reader.py
+#   2. loads 'data_info.txt' from "info" directory to determine 
+#      regular and categorical columns to select from data and 
+#      treats them accordingly
+#   3. processes selected data through loader.py to obtain train, 
+#      test and validation sets. If data contains "validation" 
+#      column, splits data as specified in that column 
+#   4. Finally, runs multiple models using build.py and saves the 
+#      scores of each of these in results folder in filename
+#      "results.json"
+#   5. Picks the best model based on "auc" score and saves in designated 
+#      folder
+
+# Example run:
+# python classification.py C:\Users\XYZ\covid_tests C:\Users\XYZ\best_model
+# #########################################################################
+
+
 from pathlib import Path
 import os
 import ast
@@ -40,13 +68,13 @@ if __name__ == '__main__':
     print("Best Model Results : " , APP_RESULTS)
 
 
-    # read data
+    # 1. read data
     data = CsvReader( str(DATA) ) 
     # data = CsvReader( str(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\data') )
     docs = list(data.rows())
     print('no. of patient records :', len(docs))
     
-    # read data_info file
+    # 2. read file specifying column names to select from data
     # INFO = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\info')
     info_files = [f for f in os.listdir(INFO) if f.endswith(".txt")]
     data_info = {}
@@ -59,8 +87,9 @@ if __name__ == '__main__':
         f.close()
     cols = data_info['cols']
     catg_cols = data_info['catg_cols']
+    target = data_info['target']
 
-    # use data _info file to find feature columns
+    # 2. select data of columns specified above
     X = [ list(i.values()) for i in data.fields(cols) ] 
     final_cols = cols
 
@@ -76,11 +105,11 @@ if __name__ == '__main__':
     print('no of fields with None value:', sum([i.count(None) for i in X_int]))
 
     # will label encode in build.py
-    y = list(data.fields('testresult')) 
+    y = list(data.fields(target)) 
 
-    # determine how to split test, train and validation set
+    # 3. determine how to split test, train and validation set
     all_cols = list(list(data.rows())[0].keys())
-    if 'Validation' in all_cols:
+    if 'Validation|validation' in all_cols:
         split_set = list(data.fields('Validation'))
         loader = CorpusLoader(X_int, y, idx=split_set) # using predefined split
         split_idx=True
@@ -88,7 +117,7 @@ if __name__ == '__main__':
         loader = CorpusLoader(X_int, y, idx=None)    # using cv
         split_idx=False
 
-    # train models and save models and its scores    
+    # 4. train models and save models and its scores    
     # RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\results')   
     for scores in score_models(binary_models, loader, split_idx=split_idx, k=5, features=final_cols, outpath=RESULTS):
         print(scores)
