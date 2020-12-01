@@ -5,7 +5,7 @@
 
 # The script 
 # 1. loads data for which prediction is to be made
-# 2. loads 'data_info_txt' that specified the columns to use
+# 2. loads 'data_info_txt' that specifies the columns to use
 #     as regular and/or categorical and target
 # 3. loads information on best model: model, probabilities and scores
 # 4. makes predictions based on above model and saves the prediction 
@@ -61,8 +61,9 @@ if __name__ == '__main__':
     info_files = [f for f in os.listdir(DATA) if f.endswith(".txt")]
     data_info = {}
     if 'data_info.txt' not in info_files:
-        print("file: 'data_info.txt' not in info folder")
+        print("file 'data_info.txt' not in info folder")
     else:
+        print("file 'data_info.txt' found")
         f = open(Path.joinpath(DATA, 'data_info.txt'),'r')
         contents = f.read()
         data_info = ast.literal_eval(contents)
@@ -71,46 +72,51 @@ if __name__ == '__main__':
     catg_cols = data_info['catg_cols']
     target = data_info['target']
 
-    # # 2. select data of columns specified above
-    # X = [ list(i.values()) for i in data.fields(cols) ] 
-    # final_cols = cols
+    # 2. select data of columns specified above
+    X = [ list(i.values()) for i in data.fields(cols) ] 
+    final_cols = cols
+    print("final columns used for training the model:", final_cols)
 
-    # # 2. determine if any columns needs to be treated as categorical
-    # if catg_cols is not None:
-    #     X_dummy = data.dummies(catg_cols)
-    #     final_cols = cols + list(X_dummy[0].keys())
-    #     X_dummy = [ list(i.values()) for i in data.dummies(catg_cols) ]
-    #     X =[ i+j for i,j in zip(X, X_dummy) ]
+    # 2. determine if any columns needs to be treated as categorical
+    if catg_cols is not None:
+        print("columns to be treated as categorical:", catg_cols)
+        X_dummy = data.dummies(catg_cols)
+        final_cols = cols + list(X_dummy[0].keys())
+        X_dummy = [ list(i.values()) for i in data.dummies(catg_cols) ]
+        X = [ i+j for i,j in zip(X, X_dummy) ]
 
-    # # 2. convert any string values to float
-    # X_int =  [[float(i) for i in elist] for elist in X ]
-    # print('no of fields with None value:', sum([i.count(None) for i in X_int]))
-    # X_int.append([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0])
+    # 2. convert values to float
+    X_int =  [[float(i) for i in elist] for elist in X ]
+    print('no of fields with None value:', sum([i.count(None) for i in X_int]))
+    X_int.append([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0])
     
-    # # 2. remove asymptomatic data
-    # X_int = [i for i in X_int if sum(i[:5])>0]
+    # 2. remove asymptomatic data
+    n_records = len(X_int)
+    X_int = [i for i in X_int if sum(i[:5])>0]
+    print('no. of asymptomatic records removed:', n_records-len(X_int))
 
-    # # 3. load best model info
-    # # MODEL = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
-    # with open(Path.joinpath(MODEL, "best_model.pkl"), 'rb') as f: 
-    #     best_model = pickle.load(f)
-    # print(best_model['clf'])
-    # with open(Path.joinpath(MODEL, "best_model_prob.pkl"), 'rb') as f:
-    #     prob = pickle.load(f) 
-    # with open(Path.joinpath(MODEL, "best_model_score.pkl"), 'rb') as f:
-    #     score = pickle.load(f) 
+    # 3. load best model info
+    # MODEL = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
+    with open(Path.joinpath(MODEL, "best_model.pkl"), 'rb') as f: 
+        best_model = pickle.load(f)
+    print("best_model:", best_model['clf'])
+    with open(Path.joinpath(MODEL, "best_model_prob.pkl"), 'rb') as f:
+        prob = pickle.load(f) 
+    with open(Path.joinpath(MODEL, "best_model_score.pkl"), 'rb') as f:
+        score = pickle.load(f) 
     
-    # # 3. pass X to predict y
-    # y = best_model.predict_proba( X_int )[:,1]
-    # y_percentile = []
-    # for i in y: 
-    #     y_percentile.append( np.round( stats.percentileofscore(prob[:, 1], i), 1 ))
+    # 3. get predictions and percentile
+    y = best_model.predict_proba( X_int )[:,1]
+    y_percentile = [np.round( stats.percentileofscore(prob[:, 1], i), 1 ) for i in y]
 
-    # result = pd.DataFrame(X_int, columns=cols)
-    # result['prediction_probability'] = y
-    # result['prediction_percentile'] = y_percentile
+    # combine original data and results
+    result = pd.DataFrame(X_int, columns=cols)
+    result['prediction_probability'] = y
+    result['prediction_percentile'] = y_percentile
     
-    # filepath = Path.joinpath(DATA, 'predictions', 'predictions.csv')
-    # filepath.parent.mkdir(parents=True, exist_ok=True)
-    # result.to_csv(filepath, index=False)
-    # print('model predictions saved to', filepath)
+    # save above as csv "predictions" folder
+    # create folder if it does not exist
+    filepath = Path.joinpath(DATA, 'predictions', 'predictions.csv')
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    result.to_csv(filepath, index=False)
+    print('model predictions saved as', filepath)

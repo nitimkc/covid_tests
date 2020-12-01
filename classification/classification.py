@@ -11,7 +11,7 @@
 #   1. loads data in csv file from "data" directory using reader.py
 #   2. loads 'data_info.txt' from "info" directory to determine 
 #      regular and categorical columns to select from data and 
-#      treats them accordingly
+#      treats them accordingly. also specifies the target column
 #   3. processes selected data through loader.py to obtain train, 
 #      test and validation sets. If data contains "validation" 
 #      column, splits data as specified in that column 
