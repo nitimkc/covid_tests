@@ -12,15 +12,15 @@
 #   2. loads 'data_info.txt' from "info" directory to determine 
 #      features, target and validation (if exisits) columns to select 
 #      from data 
-#   3. processes selected data through loader.py to obtain train, 
-#      test and validation sets. If data contains "validation" 
-#      column, splits data as specified in that column 
-#   4. Finally, runs multiple models using build.py and saves the 
+#   3. processes selected data and saves columns means
+#   4. obtains train, test and validation sets through loader.py
+#      If data contains "validation" column, splits data as specified 
+#   5. runs multiple models using build.py and saves the 
 #      scores of each of these in results folder in filename
 #      "results.json"
-#   5. Picks the best model based on "auc" score and saves it in  
-#      designated folder. Also saves the result in csv file in order 
-#      of ranking in results folder
+#   6. Picks the best model based on "auc" score. Saves best model, its
+#      score, probability info and column means in designated app folder. 
+#      Also saves the result in csv in order of model rank in results folder
 
 # Example run:
 # python classification.py C:\Users\path_to_project C:\Users\XYZ\path_to_herokuapp
@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
 
     # 1. read data
-    data = CsvReader( str(DATA) ) 
+    data = CsvReader(str(DATA)) 
     docs = list(data.rows())
     print('no. of patient records :', len(docs))
     
@@ -98,10 +98,23 @@ if __name__ == '__main__':
         f.close()
 
     # 2. select data
-    records = data.features(data_info['features'])
+    X = pd.DataFrame(list(data.fields(data_info['features'])))
+    col_means = {}
+    for i in X:
+        X[i] = pd.to_numeric(X[i], downcast="float")        # convert to numeric
+        mu = X[i].mean()
+        col_means[i] = mu
+        vals = [0,1]
+        if X[i].isin(vals).all()==False:                   # if contains values other than 0 and 1
+            X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)               # create new dummy column, 1=missing in original
+            X[i] = [mu if i not in vals else i for i in X[i]]           # fill value other than 0 and 1 with mean
+    with open(Path.joinpath(RESULTS, 'column_means.pkl'), 'wb') as f: 
+         pickle.dump(col_means, f)                                      # save column means for use in prediction.py
+
+    records = X.to_dict('records')
     final_cols = list(records[0].keys())
     X = [ list(i.values()) for i in records ] 
-    y = list(data.fields(data_info['target']))               # will label encode in build.py
+    y = list(data.fields(data_info['target'])) # will label encode in build.py
 
     # 3. determine how to split test, train and validation set
     if data_info.get('validation'):
@@ -110,7 +123,7 @@ if __name__ == '__main__':
         loader = CorpusLoader(X, y, idx=split_set) # using predefined split
     else: 
         split_idx = False
-        loader = CorpusLoader(X, y, idx=None)    # using cv
+        loader = CorpusLoader(X, y, idx=None)      # using cv
 
     # 4. train models and save models and its scores    
     for scores in score_models(binary_models, loader, split_idx=split_idx, k=5, features=final_cols, outpath=RESULTS):
@@ -134,10 +147,11 @@ if __name__ == '__main__':
     # sort model by auc and add key rank to the dictionary
     all_scores = sorted(all_scores, key=lambda x:x['auc'], reverse=True)
     for scores,rank in zip(all_scores, range(1,len(all_scores)+1)):
-        print(rank,scores)
+        print(rank)
         scores['rank'] = rank
-        # scores['positiverate'] = Counter(y)['1']/len(y)
-    
+        scores['positiverate'] = sum([int(i) for i in y if i=='1'])/len(y)
+        print(scores)
+
     # save all scores as csv
     df = pd.DataFrame.from_dict(all_scores)
     df = df[['rank', 'name',  'auc', 'sensitivity', 'specificity', 'accuracy', 'precision', 
@@ -154,8 +168,10 @@ if __name__ == '__main__':
     
     # save req info of best model in the heroku app folder
     with open(Path.joinpath(APP_RESULTS, "best_model.pkl"), 'wb') as f:
-            pickle.dump(model, f)
+        pickle.dump(model, f)
     with open(Path.joinpath(APP_RESULTS, "best_model_prob.pkl"), 'wb') as f:
-            pickle.dump(prob, f)
+        pickle.dump(prob, f)
     with open(Path.joinpath(APP_RESULTS, "best_model_score.pkl"), 'wb') as f:
-            pickle.dump(best_model, f)
+        pickle.dump(best_model, f)
+    with open(Path.joinpath(APP_RESULTS, 'column_means.pkl'), 'wb') as f: 
+         pickle.dump(col_means, f)                                      # save column means for use in prediction.py

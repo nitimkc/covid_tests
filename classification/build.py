@@ -24,32 +24,32 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score, confusion_matrix 
 
 binary_models = []
-# binary_models.append( LogisticRegression(random_state = 0, penalty='none') )
-# binary_models.append( RandomForestClassifier(random_state = 0) )
-# # binary_models.append( SVC(random_state = 42, probability=True) )
-# binary_models.append( GradientBoostingClassifier(random_state = 0) )
+binary_models.append( LogisticRegression(random_state = 0, penalty='none') )
+binary_models.append( RandomForestClassifier(random_state = 0) )
+# binary_models.append( SVC(random_state = 42, probability=True) )
+binary_models.append( GradientBoostingClassifier(random_state = 0) )
 binary_models.append( MLPClassifier(random_state=0, hidden_layer_sizes=(6,3,1), activation='relu', solver='adam') )
 
 parameters = [
-    # {'clf__C': ( np.logspace(-5, 1, 5) ),
-    #     # 'clf__penalty': ['l1', 'l2', 'none'] # regularization paramter
+    {'clf__C': ( np.logspace(-5, 1, 5) ),
+        # 'clf__penalty': ['l1', 'l2', 'none'] # regularization paramter
+        },
+    {'clf__n_estimators':range(67,88,4), #67 Number of Trees in the Forest:
+        'clf__max_depth': range(10,25,4), # 10 Minimum Splits per Tree:
+        'clf__min_samples_split': range(6,13,2), #109 Minimum Size Split
+        'clf__max_features': range(5,11,2), #9
+        # 'clf__min_samples_leaf': [1, 2, 4],
+        },
+    # {'clf__C': [0.001, 0.01, 0.1, 1, 10],
+    #     'clf__gamma': [0.001, 0.01, 0.1, 1]
     #     },
-    # {'clf__n_estimators':range(67,88,4), #67 Number of Trees in the Forest:
-    #     'clf__max_depth': range(10,25,4), # 10 Minimum Splits per Tree:
-    #     'clf__min_samples_split': range(6,13,2), #109 Minimum Size Split
-    #     'clf__max_features': range(5,11,2), #9
-    #     # 'clf__min_samples_leaf': [1, 2, 4],
-    #     },
-    # # {'clf__C': [0.001, 0.01, 0.1, 1, 10],
-    # #     'clf__gamma': [0.001, 0.01, 0.1, 1]
-    # #     },
-    # {'clf__n_estimators':range(70,88,4), #86
-    #     'clf__max_depth':range(12,25,4), #20
-    #     # 'clf__min_samples_split':range(12,25,4),
-    #     # 'clf__max_features':range(7,10,2),
-    #     # 'clf__learning_rate':[0.01,.1], #0.1,
-    #     # 'clf__subsample':[0.6,0.7,0.8], #0.6
-    #     },
+    {'clf__n_estimators':range(70,88,4), #86
+        'clf__max_depth':range(12,25,4), #20
+        # 'clf__min_samples_split':range(12,25,4),
+        # 'clf__max_features':range(7,10,2),
+        # 'clf__learning_rate':[0.01,.1], #0.1,
+        # 'clf__subsample':[0.6,0.7,0.8], #0.6
+        },
     {'clf__batch_size':[10, 50, 75, 100, 150], 
      'clf__max_iter':[10, 25, 50],
         }
@@ -97,9 +97,9 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
         best_param = best_model.best_params_
         best_score = best_model.best_score_
         best_estimator = best_model.best_estimator_['clf']
-        print(best_param)
-        print(best_score)
-        print(best_estimator)
+        print('best parameters:', best_param)
+        print('best score:', best_score)
+        print('best estimator:',best_estimator)
 
         #  retrain it on the entire dataset
         coef = []
@@ -114,12 +114,6 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
 
         y_pred = best_model.predict(X_test)
         y_pred_prob = best_model.predict_proba(X_test)
-        
-        # X_int = np.array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0]).reshape(1,-1)
-        # X_int = np.array([1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0]).reshape(1,-1)
-        # y_pred_prob = best_model.predict_proba(X_int)
-        # print(y_pred_prob[:, 1])
-
         tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
 
         # save results

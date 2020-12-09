@@ -44,14 +44,3 @@ class CsvReader(object):
                     key: row.get(key, None)
                     for key in fields
                 }
-
-    def features(self, fields):
-        X = pd.DataFrame(self.fields(fields))
-        for i in X:
-            X[i] = pd.to_numeric(X[i], downcast="float")        # convert to numeric
-            vals = [0,1]
-            if X[i].isin(vals).all()==False:                   # if contains values other than 0 and 1
-                X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)       # create new dummy column, 1=missing in original
-                mu = X[i].mean()
-                X[i] = [mu if i not in vals else i for i in X[i]]   # fill value other than 0 and 1 with mean
-        return X.to_dict('records')
