@@ -63,10 +63,9 @@ class CorpusLoader(object):
             for grp, X_grp, y_grp in zip(self.groups, self.documents(), self.labels()):
                 X_dict[grp] = X_grp
                 y_dict[grp] = y_grp
-            
-            train = [ X_dict[ get_key(X_dict, 'train')], y_dict[ get_key(y_dict, 'train')] ]
-            valid = [ X_dict[ get_key(X_dict, 'valid')], y_dict[ get_key(y_dict, 'valid')] ]
-            test  = [ X_dict[ get_key(X_dict, 'test')], y_dict[ get_key(y_dict, 'test')] ]
+            train = [ X_dict[ get_key(X_dict, '0')], y_dict[ get_key(y_dict, '0')] ]
+            valid = [ X_dict[ get_key(X_dict, '1')], y_dict[ get_key(y_dict, '1')] ]
+            test  = [ X_dict[ get_key(X_dict, '2')], y_dict[ get_key(y_dict, '2')] ]
 
         return train, valid, test
 

@@ -77,7 +77,6 @@ def score_NN(loader, split_idx=False, k=5, outpath=None):
     
     start = time.time()
     grid_results = grid_search.fit( np.concatenate((X_train,X_valid)), np.concatenate((y_train,y_valid)) )
-    print( time.time() - start)
     best_param = grid_results.best_params_
     best_score = grid_results.best_score_
     print('Best : {}, using {}'.format(best_param, best_score))
@@ -112,6 +111,7 @@ def score_NN(loader, split_idx=False, k=5, outpath=None):
         'auc': roc_auc_score(y_test, y_pred_prob[:, 1], average='weighted'),
         'f1_test': f1_score(y_test, y_pred, average='weighted'),
         'coef': list(coef),
+        'best_param': best_param,
     }
     print("{" + "\n".join("{!r}: {!r},".format(k, v) for k, v in scores.items()) + "}")
 
