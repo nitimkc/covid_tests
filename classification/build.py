@@ -127,7 +127,7 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
             'recall': recall_score(y_test, y_pred),
             'sensitivity': tp/(tp+fn),
             'specificity': tn/(tn+fp),
-            'auc': roc_auc_score(y_test, y_pred_prob[:, 1]),
+            'AUC': roc_auc_score(y_test, y_pred_prob[:, 1]),
             'f1_test': f1_score(y_test, y_pred),
             'coef': coef,
             'best_param': best_param,
@@ -142,12 +142,10 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
         if outpath:
             with open(Path.joinpath(outpath, name + ".pkl"), 'wb') as f:
                 pickle.dump(grid_search.best_estimator_, f)
-
             print("Model written out to {}".format(outpath))
 
             with open(Path.joinpath(outpath, name + "_prob.pkl"), 'wb') as f:
                 pickle.dump(y_pred_prob, f)
-
             print("Prediction probabilities written out to {}".format(outpath))
 
         yield scores

@@ -49,6 +49,9 @@ if __name__ == '__main__':
     DATA = Path(args.predictiondata_dir)
     MODEL = Path(args.model_dir)
 
+    # DATA = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\predictiondata')
+    # MODEL = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
+    
     # check if directories exists
     if ( (DATA.exists()) and (MODEL.exists()) ):
         print("Data : " , DATA)
@@ -57,7 +60,7 @@ if __name__ == '__main__':
         sys.exit('supplied directories does not exist')
 
     # 1. read data
-    data = CsvReader( str(DATA) ) 
+    data = CsvReader( str(DATA), prediction=True ) 
     docs = list(data.rows())
     print('no. of patient records :', len(docs))
     
@@ -89,7 +92,6 @@ if __name__ == '__main__':
     records = X.to_dict('records')
     final_cols = list(records[0].keys())
     X = [ list(i.values()) for i in records ] 
-    y = list(data.fields(data_info['target'])) # will label encode in build.py
 
     # 5. load best model info
     with open(Path.joinpath(MODEL, "best_model.pkl"), 'rb') as f: 
@@ -100,15 +102,16 @@ if __name__ == '__main__':
     with open(Path.joinpath(MODEL, "best_model_score.pkl"), 'rb') as f:
         score = pickle.load(f) 
     
-    # 3. get predictions and percentile
+    # 6. get predictions and percentile
     y = best_model.predict_proba( X )[:,1]
     y_percentile = [np.round( stats.percentileofscore(prob[:, 1], i), 1 ) for i in y]
 
     # combine original data and results
-    result = pd.DataFrame(features)
+    result = pd.DataFrame([i['Patient ID'] for i in docs], columns=['Patient ID'])
+    result = pd.concat([result, pd.DataFrame(features)], axis=1)
     result['prediction_probability'] = y
     result['prediction_percentile'] = y_percentile
-    
+
     # save above as csv "predictions" folder
     # create folder if it does not exist
     filepath = Path.joinpath(DATA, 'predictions', 'predictions.csv')

@@ -54,7 +54,6 @@ from loader import CorpusLoader
 from build import binary_models
 from build import score_models
 
-
 log = logging.getLogger("readability.readability")
 log.setLevel('WARNING')
 
@@ -80,6 +79,11 @@ if __name__ == '__main__':
     print("Model Results : " , RESULTS)
     print("Best Model Results : " , APP_RESULTS)
 
+    # ROOT = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests')
+    # DATA = Path.joinpath(ROOT, 'data')
+    # INFO = Path.joinpath(ROOT, 'info')
+    # RESULTS = Path.joinpath(ROOT, 'results')   
+    # APP_RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
 
     # 1. read data
     data = CsvReader(str(DATA)) 
@@ -102,10 +106,11 @@ if __name__ == '__main__':
     col_means = {}
     for i in X:
         X[i] = pd.to_numeric(X[i], downcast="float")        # convert to numeric
-        mu = X[i].mean()
-        col_means[i] = mu
+        col_means[i] = None
         vals = [0,1]
         if X[i].isin(vals).all()==False:                   # if contains values other than 0 and 1
+            mu = X[i].mean()
+            col_means[i] = mu
             X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)               # create new dummy column, 1=missing in original
             X[i] = [mu if i not in vals else i for i in X[i]]           # fill value other than 0 and 1 with mean
     with open(Path.joinpath(RESULTS, 'column_means.pkl'), 'wb') as f: 
@@ -141,11 +146,10 @@ if __name__ == '__main__':
     all_scores = []
     with open(Path.joinpath(RESULTS, 'results.json'), 'r') as f: 
         for line in f:
-            print(line)
             all_scores.append(json.loads(line))
-    
+
     # sort model by auc and add key rank to the dictionary
-    all_scores = sorted(all_scores, key=lambda x:x['auc'], reverse=True)
+    all_scores = sorted(all_scores, key=lambda x:x['AUC'], reverse=True)
     for scores,rank in zip(all_scores, range(1,len(all_scores)+1)):
         print(rank)
         scores['rank'] = rank
@@ -154,7 +158,7 @@ if __name__ == '__main__':
 
     # save all scores as csv
     df = pd.DataFrame.from_dict(all_scores)
-    df = df[['rank', 'name',  'auc', 'sensitivity', 'specificity', 'accuracy', 'precision', 
+    df = df[['rank', 'name',  'AUC', 'sensitivity', 'specificity', 'accuracy', 'precision', 
              'recall', 'f1_test', 'model', 'size', 'coef', 'best_param', 'time' ]]
     df.to_csv(Path.joinpath(RESULTS,'results.csv'), index=False)
     

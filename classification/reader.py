@@ -9,8 +9,9 @@ import numpy as np
 
 class CsvReader(object):
 
-    def __init__(self, path):
+    def __init__(self, path, prediction=False):
         self.path = path
+        self.prediction = prediction
 
     def rows(self):
         try:
@@ -18,7 +19,11 @@ class CsvReader(object):
                 with open(file, "r", encoding='utf8') as f:
                     self.reader = csv.DictReader(f)
                     for row in self.reader:
-                        yield row
+                        if self.prediction:
+                            yield row
+                        else:
+                            if (dict(row)['testresult']=='0') or  (dict(row)['testresult']=='1'): # if training ensure testresult has as 0,1
+                                yield row
         except IOError as err:
             print("I/O error({0}): {1}".format(errno, os.strerror))
         return
