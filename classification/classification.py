@@ -107,8 +107,9 @@ if __name__ == '__main__':
     for i in X:
         X[i] = pd.to_numeric(X[i], downcast="float")        # convert to numeric
         col_means[i] = None
-        vals = [0,1]
-        if X[i].isin(vals).all()==False:                   # if contains values other than 0 and 1
+        # vals = [0,1]
+        # if X[i].isin(vals).all():                         # if contains values other than 0 and 1
+        if X[i].isnull().any()==True:                       # if a value is missing
             mu = X[i].mean()
             col_means[i] = mu
             X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)               # create new dummy column, 1=missing in original

@@ -86,7 +86,7 @@ if __name__ == '__main__':
         X[i] = pd.to_numeric(X[i], downcast="float")        # convert to numeric
         mu = col_means[i]
         vals = [0,1]
-        if X[i].isin(vals).all()==False:                   # if contains values other than 0 and 1
+        if X[i].isnull().any()==True:                      # if a value is missing
             X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)       # create new dummy column, 1=missing in original
             X[i] = [mu if i not in vals else i for i in X[i]]   # fill value other than 0 and 1 with mean
     records = X.to_dict('records')
