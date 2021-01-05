@@ -25,17 +25,17 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score, confusion_matrix 
 
 binary_models = []
-# binary_models.append( LogisticRegression(random_state = 0, penalty='none') )
+binary_models.append( LogisticRegression(random_state = 0, penalty='none') )
 # binary_models.append( RandomForestClassifier(random_state = 0) )
 # binary_models.append( SVC(random_state = 0, probability=True) )
-binary_models.append( tree.DecisionTreeClassifier(random_state = 0) )
-binary_models.append( GradientBoostingClassifier(random_state = 0) )
-binary_models.append( MLPClassifier(random_state=0, hidden_layer_sizes=(6,3,1), activation='relu', solver='adam') )
+# binary_models.append( tree.DecisionTreeClassifier(random_state = 0) )
+# binary_models.append( GradientBoostingClassifier(random_state = 0) )
+# binary_models.append( MLPClassifier(random_state=0, hidden_layer_sizes=(6,3,1), activation='relu', solver='adam') )
 
 parameters = [
-    # {'clf__C': ( np.logspace(-5, 1, 5) ),
-    #     # 'clf__penalty': ['l1', 'l2', 'none'] # regularization paramter
-    #     },
+    {'clf__C': ( np.logspace(-5, 1, 5) ),
+        # 'clf__penalty': ['l1', 'l2', 'none'] # regularization paramter
+        },
     # {'clf__n_estimators':range(67,88,4), #67 Number of Trees in the Forest:
     #     'clf__max_depth': range(10,25,4), # 10 Minimum Splits per Tree:
     #     'clf__min_samples_split': range(6,13,2), #109 Minimum Size Split
@@ -45,20 +45,20 @@ parameters = [
     # {'clf__C': [0.001, 0.01, 0.1, 1, 10],
     #     'clf__gamma': [0.001, 0.01, 0.1, 1]
     #     },
-    {'clf__max_depth':[2,4,6,8,10,12],
-        'clf__max_leaf_nodes': list(range(2, 50,4)),
-        'clf__min_samples_split': [2, 3, 4],
-        },
-    {'clf__n_estimators':range(70,88,4), #86
-        'clf__max_depth':range(12,25,4), #20
-        # 'clf__min_samples_split':range(12,25,4),
-        # 'clf__max_features':range(7,10,2),
-        # 'clf__learning_rate':[0.01,.1], #0.1,
-        # 'clf__subsample':[0.6,0.7,0.8], #0.6
-        },
-    {'clf__batch_size':[10, 50, 75, 100, 150], 
-     'clf__max_iter':[10, 25, 50],
-        }
+    # {'clf__max_depth':[2,4,6,8,10,12],
+    #     'clf__max_leaf_nodes': list(range(2, 50,4)),
+    #     'clf__min_samples_split': [2, 3, 4],
+    #     },
+    # {'clf__n_estimators':range(70,88,4), #86
+    #     'clf__max_depth':range(12,25,4), #20
+    #     # 'clf__min_samples_split':range(12,25,4),
+    #     # 'clf__max_features':range(7,10,2),
+    #     # 'clf__learning_rate':[0.01,.1], #0.1,
+    #     # 'clf__subsample':[0.6,0.7,0.8], #0.6
+    #     },
+    # {'clf__batch_size':[10, 50, 75, 100, 150], 
+    #  'clf__max_iter':[10, 25, 50],
+    #     }
 ]
 
  
@@ -68,7 +68,11 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
     X_train, y_train = train[0], train[1]
     X_valid, y_valid = valid[0], valid[1]
     X_test, y_test = test[0], test[1]
-
+    
+    with open(Path.joinpath(outpath, "X_test.pkl"), 'wb') as f:
+        pickle.dump(X_test, f)
+    print("X_test written out to {}".format(outpath))
+    
     n_Xtrn = len(X_train)
     n_Xval = len(X_valid)
     n_Xtst = len(X_test)
@@ -80,7 +84,7 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
     y_train = labels.fit_transform(y_train)
     y_valid = labels.fit_transform(y_valid)
     y_test = labels.fit_transform(y_test)
-
+    print('1')
     names = [str(i).split('(')[0] for i in models]
     for model, name, params in zip(models, names, parameters):
         print(model, '\n', name, '\n', params)

@@ -107,7 +107,7 @@ if __name__ == '__main__':
     for i in X:
         X[i] = pd.to_numeric(X[i], downcast="float")        # convert to numeric
         col_means[i] = None
-        # vals = [0,1]
+        vals = [0,1]
         # if X[i].isin(vals).all():                         # if contains values other than 0 and 1
         if X[i].isnull().any()==True:                       # if a value is missing
             mu = X[i].mean()
@@ -163,19 +163,19 @@ if __name__ == '__main__':
              'recall', 'f1_test', 'model', 'size', 'coef', 'best_param', 'time' ]]
     df.to_csv(Path.joinpath(RESULTS,'results.csv'), index=False)
     
-    # load the best model and its probabilities on test set
+    # load the best model and test set
     best_model = all_scores[0]
     print('best_model is: ', best_model['name'])
     with open(Path.joinpath(RESULTS, (best_model['name']+'.pkl')), 'rb') as f: 
         model = pickle.load(f)
-    with open(Path.joinpath(RESULTS, best_model['name']+'_prob.pkl'), 'rb') as f: 
-        prob = pickle.load(f)
+    with open(Path.joinpath(RESULTS, 'X_test.pkl'), 'rb') as f: 
+        X_test = pickle.load(f)
     
     # save req info of best model in the heroku app folder
     with open(Path.joinpath(APP_RESULTS, "best_model.pkl"), 'wb') as f:
         pickle.dump(model, f)
-    with open(Path.joinpath(APP_RESULTS, "best_model_prob.pkl"), 'wb') as f:
-        pickle.dump(prob, f)
+    with open(Path.joinpath(APP_RESULTS, "X_test.pkl"), 'wb') as f:
+        pickle.dump(X_test, f)
     with open(Path.joinpath(APP_RESULTS, "best_model_score.pkl"), 'wb') as f:
         pickle.dump(best_model, f)
     with open(Path.joinpath(APP_RESULTS, 'column_means.pkl'), 'wb') as f: 

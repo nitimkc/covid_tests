@@ -111,7 +111,7 @@ if __name__ == '__main__':
     result = pd.concat([result, pd.DataFrame(features)], axis=1)
     result['prediction_probability'] = y
     result['prediction_percentile'] = y_percentile
-
+    
     # save above as csv "predictions" folder
     # create folder if it does not exist
     filepath = Path.joinpath(DATA, 'predictions', 'predictions.csv')
