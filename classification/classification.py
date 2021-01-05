@@ -112,8 +112,8 @@ if __name__ == '__main__':
         if X[i].isnull().any()==True:                       # if a value is missing
             mu = X[i].mean()
             col_means[i] = mu
-            X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)               # create new dummy column, 1=missing in original
-            X[i] = [mu if i not in vals else i for i in X[i]]           # fill value other than 0 and 1 with mean
+            X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)   # create new dummy column, 1=missing in original
+            X[i] = X[i].fillna(mu)                          # fill missing with mean
     with open(Path.joinpath(RESULTS, 'column_means.pkl'), 'wb') as f: 
          pickle.dump(col_means, f)                                      # save column means for use in prediction.py
     

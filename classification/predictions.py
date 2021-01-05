@@ -16,6 +16,7 @@
 # 6. makes predictions based on above model and saves the prediction 
 #    probabilities and percentiles along with the original data (as csv)
 #    in "predictions" folder under same directory as the data
+# NOTE: the first value of Ave is taken as average to calculate percentile
 
 # Example run:
 # python prediction.py C:\Users\path_to_herokuapp C:\Users\path_to_project 
@@ -87,8 +88,8 @@ if __name__ == '__main__':
         mu = col_means[i]
         vals = [0,1]
         if X[i].isnull().any()==True:                      # if a value is missing
-            X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)       # create new dummy column, 1=missing in original
-            X[i] = [mu if i not in vals else i for i in X[i]]   # fill value other than 0 and 1 with mean
+            X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)   # create new dummy column, 1=missing in original
+            X[i] = X[i].fillna(mu)                          # fill missing with mean
     records = X.to_dict('records')
     final_cols = list(records[0].keys())
     X = [ list(i.values()) for i in records ] 
@@ -97,14 +98,31 @@ if __name__ == '__main__':
     with open(Path.joinpath(MODEL, "best_model.pkl"), 'rb') as f: 
         best_model = pickle.load(f)
     print("best_model:", best_model['clf'])
-    with open(Path.joinpath(MODEL, "best_model_prob.pkl"), 'rb') as f:
-        prob = pickle.load(f) 
+    with open(Path.joinpath(MODEL, "X_test.pkl"), 'rb') as f:
+        test_data = pickle.load(f)  
     with open(Path.joinpath(MODEL, "best_model_score.pkl"), 'rb') as f:
         score = pickle.load(f) 
     
     # 6. get predictions and percentile
-    y = best_model.predict_proba( X )[:,1]
-    y_percentile = [np.round( stats.percentileofscore(prob[:, 1], i), 1 ) for i in y]
+
+    X_test = pd.DataFrame(test_data, columns=[k for k,v in records[0].items()])
+    N = len(X)
+    y = np.zeros(N)
+    y_percentile = np.zeros(N)
+    for n,i,j, in zip(range(N), records, X):
+        print(n)
+        print(i,j)
+        y[n] = best_model.predict_proba(np.array(j).reshape(1,-1))[:,1]
+        print(y)
+        
+        apt7 = i['Ave_Pos_Past7d']
+        cond1 = X_test['Ave_Pos_Past7d']>=(apt7-.3)
+        cond2 = X_test['Ave_Pos_Past7d']>=(apt7+.3)
+        filtered_X_test = X_test[(cond1)&(cond2)]
+
+        y_prob_test = best_model.predict_proba(filtered_X_test)[:,1]
+        y_percentile[n] = np.round( stats.percentileofscore(y_prob_test, y[n]),1)
+        print(y_percentile)
 
     # combine original data and results
     result = pd.DataFrame([i['Patient ID'] for i in docs], columns=['Patient ID'])

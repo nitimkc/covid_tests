@@ -156,8 +156,4 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
                 pickle.dump(grid_search.best_estimator_, f)
             print("Model written out to {}".format(outpath))
 
-            with open(Path.joinpath(outpath, name + "_prob.pkl"), 'wb') as f:
-                pickle.dump(y_pred_prob, f)
-            print("Prediction probabilities written out to {}".format(outpath))
-
         yield scores
