@@ -16,7 +16,6 @@
 # 6. makes predictions based on above model and saves the prediction 
 #    probabilities and percentiles along with the original data (as csv)
 #    in "predictions" folder under same directory as the data
-# NOTE: the first value of Ave is taken as average to calculate percentile
 
 # Example run:
 # python prediction.py C:\Users\path_to_herokuapp C:\Users\path_to_project 
@@ -104,11 +103,9 @@ if __name__ == '__main__':
         score = pickle.load(f) 
     
     # 6. get predictions and percentile
-
     X_test = pd.DataFrame(test_data, columns=[k for k,v in records[0].items()])
     N = len(X)
-    y = np.zeros(N)
-    y_percentile = np.zeros(N)
+    y, y_percentile = np.zeros(N), np.zeros(N)
     for n,i,j, in zip(range(N), records, X):
         print(n)
         print(i,j)

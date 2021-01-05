@@ -19,7 +19,7 @@
 #      scores of each of these in results folder in filename
 #      "results.json"
 #   6. Picks the best model based on "auc" score. Saves best model, its
-#      score, probability info and column means in designated app folder. 
+#      score, test data and column means in designated app folder. 
 #      Also saves the result in csv in order of model rank in results folder
 
 # Example run:
@@ -27,11 +27,10 @@
 
 # DATA REQUIREMENTS: 
 #   1. Must be csv file
-#   2. Values other than 0 or 1 in feature column is treated as missing
-#   3. Values considered missing is treated as:
+#   2. For all columns with missing values:
 #       a. a new dummy column is created where 1 indicates missing in original column
 #       b. missing value in original column is replaced with mean value of that column
-#   4. Validation column must be provided as 0=Train, 1=Validation and 2=Test sets
+#   3. For validation column each row must indicate: "training", "validation" or "test"
 
 # #################################################################################
 
