@@ -115,7 +115,7 @@ if __name__ == '__main__':
             X[i] = [mu if i not in vals else i for i in X[i]]           # fill value other than 0 and 1 with mean
     with open(Path.joinpath(RESULTS, 'column_means.pkl'), 'wb') as f: 
          pickle.dump(col_means, f)                                      # save column means for use in prediction.py
-
+    
     records = X.to_dict('records')
     final_cols = list(records[0].keys())
     X = [ list(i.values()) for i in records ] 

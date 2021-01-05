@@ -16,7 +16,7 @@ class CsvReader(object):
     def rows(self):
         try:
             for file in glob.glob(self.path+'\*.csv'):
-                with open(file, "r", encoding='utf8') as f:
+                with open(file, "r", encoding='utf-8') as f:
                     self.reader = csv.DictReader(f)
                     for row in self.reader:
                         if self.prediction:

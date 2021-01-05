@@ -16,6 +16,7 @@ from sklearn.model_selection import PredefinedSplit
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
+from sklearn import tree
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.neural_network import MLPClassifier
 
@@ -26,7 +27,8 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 binary_models = []
 binary_models.append( LogisticRegression(random_state = 0, penalty='none') )
 binary_models.append( RandomForestClassifier(random_state = 0) )
-# binary_models.append( SVC(random_state = 42, probability=True) )
+binary_models.append( SVC(random_state = 0, probability=True) )
+binary_models.append( tree.DecisionTreeClassifier(random_state = 0) )
 binary_models.append( GradientBoostingClassifier(random_state = 0) )
 binary_models.append( MLPClassifier(random_state=0, hidden_layer_sizes=(6,3,1), activation='relu', solver='adam') )
 
@@ -40,9 +42,13 @@ parameters = [
         'clf__max_features': range(5,11,2), #9
         # 'clf__min_samples_leaf': [1, 2, 4],
         },
-    # {'clf__C': [0.001, 0.01, 0.1, 1, 10],
-    #     'clf__gamma': [0.001, 0.01, 0.1, 1]
-    #     },
+    {'clf__C': [0.001, 0.01, 0.1, 1, 10],
+        'clf__gamma': [0.001, 0.01, 0.1, 1]
+        },
+    {'clf__max_depth':[2,4,6,8,10,12],
+        'clf__max_leaf_nodes': list(range(2, 50,4)),
+        'clf__min_samples_split': [2, 3, 4],
+        },
     {'clf__n_estimators':range(70,88,4), #86
         'clf__max_depth':range(12,25,4), #20
         # 'clf__min_samples_split':range(12,25,4),
@@ -108,6 +114,8 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
                 coef.append( dict(zip(['intercept']+features, np.concatenate((best_estimator.intercept_ ,best_estimator.coef_[0])))) )
                 # coef = np.concatenate((best_estimator.intercept_ , best_estimator.coef_[0]))
             elif name=='MLPClassifier':
+                coef.append( None )
+            elif name=='SVC':
                 coef.append( None )
             else:
                 coef.append( dict(zip(features, best_estimator.feature_importances_)) )

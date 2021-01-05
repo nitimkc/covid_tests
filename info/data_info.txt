@@ -1,5 +1,5 @@
 {
-'features': ['cough', 'fever', 'sore_throat', 'shortness_of_breath', 'head_ache', 'Sixties', 'Gender', 'contact'],
+'features': ['cough', 'fever', 'sore_throat', 'shortness_of_breath', 'head_ache', 'Sixties', 'Gender', 'Ave_Pos_Past7d'],
 'target': 'testresult',
 'validation':'Validation'
 }
