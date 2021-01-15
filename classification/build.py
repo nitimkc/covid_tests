@@ -2,6 +2,7 @@ from logging import raiseExceptions
 from pathlib import Path
 import numpy as np 
 import os
+import csv
 import time
 import pickle
 from collections import Counter
@@ -26,39 +27,39 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 binary_models = []
 binary_models.append( LogisticRegression(random_state = 0, penalty='none') )
-# binary_models.append( RandomForestClassifier(random_state = 0) )
+binary_models.append( RandomForestClassifier(random_state = 0) )
 # binary_models.append( SVC(random_state = 0, probability=True) )
-# binary_models.append( tree.DecisionTreeClassifier(random_state = 0) )
-# binary_models.append( GradientBoostingClassifier(random_state = 0) )
-# binary_models.append( MLPClassifier(random_state=0, hidden_layer_sizes=(6,3,1), activation='relu', solver='adam') )
+binary_models.append( tree.DecisionTreeClassifier(random_state = 0) )
+binary_models.append( GradientBoostingClassifier(random_state = 0) )
+binary_models.append( MLPClassifier(random_state=0, hidden_layer_sizes=(6,3,1), activation='relu', solver='adam') )
 
 parameters = [
     {'clf__C': ( np.logspace(-5, 1, 5) ),
         # 'clf__penalty': ['l1', 'l2', 'none'] # regularization paramter
         },
-    # {'clf__n_estimators':range(67,88,4), #67 Number of Trees in the Forest:
-    #     'clf__max_depth': range(10,25,4), # 10 Minimum Splits per Tree:
-    #     'clf__min_samples_split': range(6,13,2), #109 Minimum Size Split
-    #     'clf__max_features': range(5,11,2), #9
-    #     # 'clf__min_samples_leaf': [1, 2, 4],
-    #     },
+    {'clf__n_estimators':range(67,88,4), #67 Number of Trees in the Forest:
+        'clf__max_depth': range(10,25,4), # 10 Minimum Splits per Tree:
+        'clf__min_samples_split': range(6,13,2), #109 Minimum Size Split
+        'clf__max_features': range(5,11,2), #9
+        # 'clf__min_samples_leaf': [1, 2, 4],
+        },
     # {'clf__C': [0.001, 0.01, 0.1, 1, 10],
     #     'clf__gamma': [0.001, 0.01, 0.1, 1]
     #     },
-    # {'clf__max_depth':[2,4,6,8,10,12],
-    #     'clf__max_leaf_nodes': list(range(2, 50,4)),
-    #     'clf__min_samples_split': [2, 3, 4],
-    #     },
-    # {'clf__n_estimators':range(70,88,4), #86
-    #     'clf__max_depth':range(12,25,4), #20
-    #     # 'clf__min_samples_split':range(12,25,4),
-    #     # 'clf__max_features':range(7,10,2),
-    #     # 'clf__learning_rate':[0.01,.1], #0.1,
-    #     # 'clf__subsample':[0.6,0.7,0.8], #0.6
-    #     },
-    # {'clf__batch_size':[10, 50, 75, 100, 150], 
-    #  'clf__max_iter':[10, 25, 50],
-    #     }
+    {'clf__max_depth':[2,4,6,8,10,12],
+        'clf__max_leaf_nodes': list(range(2, 50,4)),
+        'clf__min_samples_split': [2, 3, 4],
+        },
+    {'clf__n_estimators':range(70,88,4), #86
+        'clf__max_depth':range(12,25,4), #20
+        # 'clf__min_samples_split':range(12,25,4),
+        # 'clf__max_features':range(7,10,2),
+        # 'clf__learning_rate':[0.01,.1], #0.1,
+        # 'clf__subsample':[0.6,0.7,0.8], #0.6
+        },
+    {'clf__batch_size':[10, 50, 75, 100, 150], 
+     'clf__max_iter':[10, 25, 50],
+        }
 ]
 
  
@@ -69,8 +70,9 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
     X_valid, y_valid = valid[0], valid[1]
     X_test, y_test = test[0], test[1]
     
-    with open(Path.joinpath(outpath, "X_test.pkl"), 'wb') as f:
-        pickle.dump(X_test, f)
+    with open(Path.joinpath(outpath, "X_test.csv"), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(X_test)
     print("X_test written out to {}".format(outpath))
     
     n_Xtrn = len(X_train)
@@ -155,5 +157,8 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
             with open(Path.joinpath(outpath, name + ".pkl"), 'wb') as f:
                 pickle.dump(grid_search.best_estimator_, f)
             print("Model written out to {}".format(outpath))
+            with open(Path.joinpath(outpath, name + "_prob.pkl"), 'wb') as f:
+                pickle.dump(y_pred_prob, f)
+            print("Model probabilities written out to {}".format(outpath))
 
         yield scores

@@ -19,7 +19,7 @@
 #      scores of each of these in results folder in filename
 #      "results.json"
 #   6. Picks the best model based on "auc" score. Saves best model, its
-#      score, probability info and column means in designated app folder. 
+#      score, test data and column means in designated app folder. 
 #      Also saves the result in csv in order of model rank in results folder
 
 # Example run:
@@ -27,11 +27,10 @@
 
 # DATA REQUIREMENTS: 
 #   1. Must be csv file
-#   2. Values other than 0 or 1 in feature column is treated as missing
-#   3. Values considered missing is treated as:
+#   2. For all columns with missing values:
 #       a. a new dummy column is created where 1 indicates missing in original column
 #       b. missing value in original column is replaced with mean value of that column
-#   4. Validation column must be provided as 0=Train, 1=Validation and 2=Test sets
+#   3. For validation column each row must indicate: "training", "validation" or "test"
 
 # #################################################################################
 
@@ -108,12 +107,11 @@ if __name__ == '__main__':
         X[i] = pd.to_numeric(X[i], downcast="float")        # convert to numeric
         col_means[i] = None
         vals = [0,1]
-        # if X[i].isin(vals).all():                         # if contains values other than 0 and 1
         if X[i].isnull().any()==True:                       # if a value is missing
             mu = X[i].mean()
             col_means[i] = mu
-            X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)   # create new dummy column, 1=missing in original
-            X[i] = X[i].fillna(mu)                          # fill missing with mean
+            X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)               # create new dummy column, 1=missing in original
+            X[i] = X[i].fillna(mu)                                      # fill missing with mean
     with open(Path.joinpath(RESULTS, 'column_means.pkl'), 'wb') as f: 
          pickle.dump(col_means, f)                                      # save column means for use in prediction.py
     
@@ -168,15 +166,18 @@ if __name__ == '__main__':
     print('best_model is: ', best_model['name'])
     with open(Path.joinpath(RESULTS, (best_model['name']+'.pkl')), 'rb') as f: 
         model = pickle.load(f)
-    with open(Path.joinpath(RESULTS, 'X_test.pkl'), 'rb') as f: 
-        X_test = pickle.load(f)
+    with open(Path.joinpath(RESULTS, (best_model['name']+'_prob.pkl')), 'rb') as f:
+        prob = pickle.load(f) 
     
     # save req info of best model in the heroku app folder
     with open(Path.joinpath(APP_RESULTS, "best_model.pkl"), 'wb') as f:
         pickle.dump(model, f)
-    with open(Path.joinpath(APP_RESULTS, "X_test.pkl"), 'wb') as f:
-        pickle.dump(X_test, f)
     with open(Path.joinpath(APP_RESULTS, "best_model_score.pkl"), 'wb') as f:
         pickle.dump(best_model, f)
+    with open(Path.joinpath(APP_RESULTS, "best_model_prob.pkl"), 'wb') as f:
+        pickle.dump(prob, f)
     with open(Path.joinpath(APP_RESULTS, 'column_means.pkl'), 'wb') as f: 
-         pickle.dump(col_means, f)                                      # save column means for use in prediction.py
+         pickle.dump(col_means, f)       
+    with open(Path.joinpath(APP_RESULTS, 'data_info.pkl'), 'wb') as f: 
+         pickle.dump(data_info, f)                                      
+        
