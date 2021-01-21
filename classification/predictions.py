@@ -96,29 +96,35 @@ if __name__ == '__main__':
     # 5. load best model info
     with open(Path.joinpath(MODEL, "best_model.pkl"), 'rb') as f: 
         best_model = pickle.load(f)
-    print("best_model:", best_model['clf'])
-    with open(Path.joinpath(MODEL, "X_test.pkl"), 'rb') as f:
-        test_data = pickle.load(f)  
+    print("best_model:", best_model['clf']) 
     with open(Path.joinpath(MODEL, "best_model_score.pkl"), 'rb') as f:
         score = pickle.load(f) 
+    with open(Path.joinpath(MODEL, "best_model_prob.pkl"), 'rb') as f:
+        prob = pickle.load(f) 
+    with open(Path.joinpath(MODEL, "X_test.csv"), 'rt') as f:
+        test_data = [float(line.rstrip('\n')) for line in f]
+    with open(Path.joinpath(MODEL, "column_means.pkl"), 'rb') as f:
+        col_means = pickle.load(f)
     
     # 6. get predictions and percentile
-    X_test = pd.DataFrame(test_data, columns=[k for k,v in records[0].items()])
+    X_test = pd.DataFrame( {'apt7':test_data, 'prob':prob[:,1]} )
     N = len(X)
     y, y_percentile = np.zeros(N), np.zeros(N)
     for n,i,j, in zip(range(N), records, X):
         print(n)
         print(i,j)
-        y[n] = best_model.predict_proba(np.array(j).reshape(1,-1))[:,1]
+        y_loc = best_model.predict_proba(np.array(j).reshape(1,-1))[:,1]
+        y[n] = y_loc
         print(y)
         
         apt7 = i['Ave_Pos_Past7d']
-        cond1 = X_test['Ave_Pos_Past7d']>=(apt7-.3)
-        cond2 = X_test['Ave_Pos_Past7d']>=(apt7+.3)
+        print(apt7)
+        cond1 = X_test['apt7']>=(apt7-1)
+        cond2 = X_test['apt7']<=(apt7+1)
         filtered_X_test = X_test[(cond1)&(cond2)]
+        print(filtered_X_test)
 
-        y_prob_test = best_model.predict_proba(filtered_X_test)[:,1]
-        y_percentile[n] = np.round( stats.percentileofscore(y_prob_test, y[n]),1)
+        y_percentile[n] = np.round( stats.percentileofscore(X_test['prob'], y_loc),1 )
         print(y_percentile)
 
     # combine original data and results
