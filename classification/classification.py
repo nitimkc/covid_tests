@@ -8,17 +8,19 @@
 #      - Must have "model" folder inside
 
 # This script 
-#   1. loads data in csv file from "data" directory using reader.py
-#   2. loads 'data_info.txt' from "info" directory to determine 
-#      features, target and validation (if exisits) columns to select 
-#      from data 
-#   3. processes selected data and saves columns means
-#   4. obtains train, test and validation sets through loader.py
+#   1. loads 'data_info.txt' from "info" directory to determine 
+#      features (categorical and numerical), target and validation  
+#      (if exists) columns to select from data 
+#   2. loads data in csv file from "data" directory using reader.py
+#   3. processes categorical columns
+#   4. filters data using filter info given in 'data_info.txt'
+#   5. removes rows if values are missing in numerical features 
+#   6. obtains train, test and validation sets through loader.py
 #      If data contains "validation" column, splits data as specified 
-#   5. runs multiple models using build.py and saves the 
+#   7. runs multiple models using build.py and saves the 
 #      scores of each of these in results folder in filename
 #      "results.json"
-#   6. Picks the best model based on "auc" score. Saves best model, its
+#   8. Picks the best model based on "auc" score. Saves best model, its
 #      score, test data and column means in designated app folder. 
 #      Also saves the result in csv in order of model rank in results folder
 
@@ -83,13 +85,8 @@ if __name__ == '__main__':
     # INFO = Path.joinpath(ROOT, 'info')
     # RESULTS = Path.joinpath(ROOT, 'results')   
     # APP_RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
-
-    # 1. read data
-    data = CsvReader(str(DATA)) 
-    docs = list(data.rows())
-    print('no. of patient records :', len(docs))
     
-    # 2. read file specifying column names to select from data
+    # 1. read file specifying column names to select from data
     info_files = [f for f in os.listdir(INFO) if f.endswith("data_info.txt")]
     data_info = {}
     if 'data_info.txt' not in info_files:
@@ -98,38 +95,73 @@ if __name__ == '__main__':
         f = open(Path.joinpath(INFO, 'data_info.txt'),'r')
         contents = f.read()
         data_info = ast.literal_eval(contents)
-        f.close()
+        f.close() 
+    
+    # 2. read data from features, target, validation columns
+    # data = pd.read_csv(str(DATA), encoding="utf-8", header=1)
+    data = CsvReader(str(DATA), target=data_info['target']) 
+    X_cat = pd.DataFrame(list(data.fields(data_info['cat_features'])))
+    X_num = pd.DataFrame(list(data.fields(data_info['num_features'])))
+    y = pd.Series(list(data.fields(data_info['target'])))
+    validation = pd.Series(list(data.fields(data_info['validation'])))
 
-    # 2. select data
-    X = pd.DataFrame(list(data.fields(data_info['features'])))
+    # 3. transform categorical features
     col_means = {}
-    for i in X:
-        X[i] = pd.to_numeric(X[i], downcast="float")        # convert to numeric
+    for i in X_cat:
+        X_cat[i] = pd.to_numeric(X_cat[i], downcast="float")        # convert to numeric
         col_means[i] = None
-        vals = [0,1]
-        if X[i].isnull().any()==True:                       # if a value is missing
-            mu = X[i].mean()
+        if X_cat[i].isnull().any()==True:                       # if a value is missing
+            mu = X_cat[i].mean()
             col_means[i] = mu
-            X[i+'_1'] = np.where(X[i].isnull(), 1.0, 0.0)               # create new dummy column, 1=missing in original
-            X[i] = X[i].fillna(mu)                                      # fill missing with mean
+            X_cat[i+'_1'] = np.where(X_cat[i].isnull(), 1.0, 0.0)               # create new dummy column, 1=missing in original
+            X_cat[i] = X_cat[i].fillna(mu)                                      # fill missing with mean
     with open(Path.joinpath(RESULTS, 'column_means.pkl'), 'wb') as f: 
          pickle.dump(col_means, f)                                      # save column means for use in prediction.py
     
+    # 4. filter data as defined in data_info.txt file
+    filter_col = pd.Series(list(data.fields(data_info['filter_feature'])))
+    filter_logic = data_info['filter_logic'] 
+    filter_val = data_info['filter_value']
+
+    if filter_logic == '==':
+        filter_name = 'eqto'
+        filter_idx = filter_col[filter_col==filter_val].index
+    if filter_logic == '>=':
+        filter_name = 'grthan'
+        filter_idx = filter_col[filter_col>=filter_val].index
+    if filter_logic == '<=':
+        filter_name = 'lsthan'
+        filter_idx = filter_col[filter_col<=filter_val].index
+
+    X = pd.concat([X_num, X_cat], axis=1)
+    X = X.iloc[filter_idx]
+    y = y[filter_idx]
+    validation = validation[filter_idx]
+
+    # 5. remove rows with missing values in numeric features
+    X[data_info['num_features']] = X[data_info['num_features']].apply(pd.to_numeric, errors='coerce')
+    null_identifier = X.isnull().any(axis=1)
+    null_idx = null_identifier.index[null_identifier]
+
+    X = X.drop(null_idx)
+    y = y.drop(null_idx)
+    validation = validation.drop(null_idx)
+
+    # 6. prepare data for modelling and determine test, train and validation splits 
     records = X.to_dict('records')
     final_cols = list(records[0].keys())
     X = [ list(i.values()) for i in records ] 
-    y = list(data.fields(data_info['target'])) # will label encode in build.py
+    y = list(y) # will label encode in build.py
 
-    # 3. determine how to split test, train and validation set
     if data_info.get('validation'):
         split_idx = True
-        split_set = [str(i) for i in list(data.fields('Validation'))]
+        split_set = [str(i) for i in validation]
         loader = CorpusLoader(X, y, idx=split_set) # using predefined split
     else: 
         split_idx = False
         loader = CorpusLoader(X, y, idx=None)      # using cv
 
-    # 4. train models and save models and its scores    
+    # 7. train models and save models and its scores    
     for scores in score_models(binary_models, loader, split_idx=split_idx, k=5, features=final_cols, outpath=RESULTS):
         print(scores)
         result_filename = 'results.json'
@@ -139,7 +171,7 @@ if __name__ == '__main__':
 
     
 #########################################################################
-# Part 5
+# Part 8
 #########################################################################
     # load all results
     all_scores = []
@@ -170,14 +202,14 @@ if __name__ == '__main__':
         prob = pickle.load(f) 
     
     # save req info of best model in the heroku app folder
-    with open(Path.joinpath(APP_RESULTS, "best_model.pkl"), 'wb') as f:
+    with open(Path.joinpath(APP_RESULTS, "best_model_"+filter_name+filter_val+".pkl"), 'wb') as f:
         pickle.dump(model, f)
-    with open(Path.joinpath(APP_RESULTS, "best_model_score.pkl"), 'wb') as f:
+    with open(Path.joinpath(APP_RESULTS, "best_model_score_"+filter_name+filter_val+".pkl"), 'wb') as f:
         pickle.dump(best_model, f)
-    with open(Path.joinpath(APP_RESULTS, "best_model_prob.pkl"), 'wb') as f:
+    with open(Path.joinpath(APP_RESULTS, "best_model_prob_"+filter_name+filter_val+".pkl"), 'wb') as f:
         pickle.dump(prob, f)
-    with open(Path.joinpath(APP_RESULTS, 'column_means.pkl'), 'wb') as f: 
+    with open(Path.joinpath(APP_RESULTS, "column_means_"+filter_name+filter_val+".pkl"), 'wb') as f: 
          pickle.dump(col_means, f)       
-    with open(Path.joinpath(APP_RESULTS, 'data_info.pkl'), 'wb') as f: 
+    with open(Path.joinpath(APP_RESULTS, "data_info_"+filter_name+filter_val+".pkl"), 'wb') as f: 
          pickle.dump(data_info, f)                                      
         

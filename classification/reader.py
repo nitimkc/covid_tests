@@ -9,9 +9,10 @@ import numpy as np
 
 class CsvReader(object):
 
-    def __init__(self, path, prediction=False):
+    def __init__(self, path, target, prediction=False):
         self.path = path
         self.prediction = prediction
+        self.target = target
 
     def rows(self):
         try:
@@ -22,7 +23,7 @@ class CsvReader(object):
                         if self.prediction:
                             yield row
                         else:
-                            if (dict(row)['testresult']=='0') or  (dict(row)['testresult']=='1'): # if training ensure testresult has as 0,1
+                            if (dict(row)[self.target]=='0') or  (dict(row)[self.target]=='1'): # if training ensure testresult has as 0,1
                                 yield row
         except IOError as err:
             print("I/O error({0}): {1}".format(errno, os.strerror))
