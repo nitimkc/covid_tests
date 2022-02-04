@@ -50,7 +50,7 @@ if __name__ == '__main__':
     MODEL = Path(args.model_dir)
 
     # DATA = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests\predictiondata')
-    # MODEL = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model')
+    # MODEL = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor\model\2021')
     
     # check if directories exists
     if ( (DATA.exists()) and (MODEL.exists()) ):
@@ -124,8 +124,12 @@ if __name__ == '__main__':
         filtered_X_test = X_test[(cond1)&(cond2)]
         print(filtered_X_test)
 
-        y_percentile[n] = np.round( stats.percentileofscore(X_test['prob'], y_loc),1 )
+        y_percentile[n] = np.round( stats.percentileofscore(X_test['prob'], y_loc), 1)
         print(y_percentile)
+        # predict which cluster this X falls using the best clustering model (best k)
+        # based on that cluster calculate the percentile based on only that cluster's percentile
+        # predicted_k = best_cluster_mode.predict(X)
+        # stats.percentileofscore(X_test.loc['k'==predicted_k:'prob'], y)
 
     # combine original data and results
     result = pd.DataFrame([i['Patient ID'] for i in docs], columns=['Patient ID'])

@@ -1,5 +1,6 @@
 from logging import raiseExceptions
 from pathlib import Path
+import pandas as pd
 import numpy as np 
 import os
 import csv
@@ -8,7 +9,7 @@ import pickle
 from collections import Counter
 # import unicodedata
 
-from loader import CorpusLoader
+from sklearn.model_selection import train_test_split as tts
 
 from sklearn.preprocessing import LabelEncoder
 
@@ -26,7 +27,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score, confusion_matrix 
 
 binary_models = []
-binary_models.append( LogisticRegression(random_state = 0, penalty='none') )
+binary_models.append( LogisticRegression(max_iter=1000, random_state=123) )
 binary_models.append( RandomForestClassifier(random_state = 0) )
 # binary_models.append( SVC(random_state = 0, probability=True) )
 binary_models.append( tree.DecisionTreeClassifier(random_state = 0) )
@@ -35,58 +36,79 @@ binary_models.append( MLPClassifier(random_state=0, hidden_layer_sizes=(6,3,1), 
 
 parameters = [
     {'clf__C': ( np.logspace(-5, 1, 5) ),
-        # 'clf__penalty': ['l1', 'l2', 'none'] # regularization paramter
-        },
-    {'clf__n_estimators':range(67,88,4), #67 Number of Trees in the Forest:
-        'clf__max_depth': range(10,25,4), # 10 Minimum Splits per Tree:
-        'clf__min_samples_split': range(6,13,2), #109 Minimum Size Split
-        'clf__max_features': range(5,11,2), #9
+        'clf__penalty': ['none', 'l2', 'l1', 'elasticnet'], # regularization parameter
+        # 'clf__solver': ['newton-cg', 'lbfgs', 'sag'] # solver
+        },#logistic
+    {'clf__n_estimators':range(50,100,10), #67 Number of Trees in the Forest:
+        'clf__min_samples_split': np.arange(0.01, 0.1,.02), #109 Minimum Size Split
+        'clf__max_features': ["sqrt", "log2"], #9
         # 'clf__min_samples_leaf': [1, 2, 4],
-        },
+        },#randomforest
     # {'clf__C': [0.001, 0.01, 0.1, 1, 10],
     #     'clf__gamma': [0.001, 0.01, 0.1, 1]
-    #     },
-    {'clf__max_depth':[2,4,6,8,10,12],
-        'clf__max_leaf_nodes': list(range(2, 50,4)),
-        'clf__min_samples_split': [2, 3, 4],
-        },
-    {'clf__n_estimators':range(70,88,4), #86
-        'clf__max_depth':range(12,25,4), #20
+    #     },#svm
+    {'clf__criterion': ['entropy', 'gini'],
+        'clf__min_samples_split': np.arange(0.01, 0.1,.02), #109 Minimum Size Split
+        # 'clf__max_leaf_nodes': list(range(2, 100,4)),
+        # 'clf__max_depth':range(3,20,7), #20
+        },#decisiontree
+    {'clf__n_estimators':range(50,100,10), #86
+        'clf__max_depth':range(10,30,5), #20
         # 'clf__min_samples_split':range(12,25,4),
         # 'clf__max_features':range(7,10,2),
         # 'clf__learning_rate':[0.01,.1], #0.1,
         # 'clf__subsample':[0.6,0.7,0.8], #0.6
-        },
+        },#gradientboosting
     {'clf__batch_size':[10, 50, 75, 100, 150], 
      'clf__max_iter':[10, 25, 50],
-        }
+        }#NN
 ]
 
- 
-def score_models(models, loader, split_idx=False, k=5, features=None, outpath=None):
-    
-    train, valid, test = loader.sets()
-    X_train, y_train = train[0], train[1]
-    X_valid, y_valid = valid[0], valid[1]
-    X_test, y_test = test[0], test[1]
-    
-    with open(Path.joinpath(outpath, "X_test.csv"), 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerows(X_test)
+# split_idx = validation_idx
+# outpath = RESULTS
+# model = binary_models[0]
+# name = str(model).split('(')[0]
+# params = parameters[0]
+# k = 5
+# test_set = test_nofilter
+def score_models(models, X, y, split_idx, test_set=None, k=5, outpath=None):
+
+    if split_idx is None:
+        train_ratio = 0.50
+        validation_ratio = 0.25
+        test_ratio = 0.25
+        X_train, X_test, y_train, y_test = tts(X, y, test_size=1 - train_ratio, random_state=42)
+        X_valid, X_test, y_valid, y_test = tts(X_test, y_test, test_size=test_ratio/(test_ratio + validation_ratio), random_state=42)
+    else:
+        train_idx = split_idx == "Training"
+        valid_idx = split_idx == "Validation"
+        test_idx = split_idx == "Test"
+        
+        X_train, y_train = X[train_idx], y[train_idx]
+        X_valid, y_valid = X[valid_idx], y[valid_idx]
+        X_test, y_test = X[test_idx], y[test_idx] 
+
+    # if test set without any filter is provided use that as test_set
+    if test_set is not None:
+        X_test, y_test = test_set[0], test_set[1]
+        print(f"Test set without any filter used")
+
+    X_test.to_csv(Path.joinpath(outpath,'X_test.csv'), index=False)
     print("X_test written out to {}".format(outpath))
     
     n_Xtrn = len(X_train)
     n_Xval = len(X_valid)
     n_Xtst = len(X_test)
 
-    print('n_train:', n_Xtrn, '\nn_valid:', n_Xval, '\nn_test:' , n_Xtst)
+    print('n_train:', n_Xtrn, '\nn_test:' , n_Xtst, '\nn_valid:', n_Xval)
 
     # Label encode the targets
     labels = LabelEncoder()
     y_train = labels.fit_transform(y_train)
     y_valid = labels.fit_transform(y_valid)
     y_test = labels.fit_transform(y_test)
-    print('1')
+    print('completed training and testing data set-up')
+
     names = [str(i).split('(')[0] for i in models]
     for model, name, params in zip(models, names, parameters):
         print(model, '\n', name, '\n', params)
@@ -96,16 +118,16 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
             ])
 
         # Create gridsearch with specified valid set
-        if split_idx: 
+        if split_idx is not None: 
             # Create a list where train data indices are -1 and validation data indices are 0
             test_fold = [-1 for i in range(n_Xtrn)] + [0 for i in range(n_Xval)]
             ps = PredefinedSplit(test_fold=test_fold)
-            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=ps)#, scoring='roc_auc')
+            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=ps, verbose=2, n_jobs=-1)#, scoring='roc_auc')
         else:
-            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=k)#, scoring='roc_auc')
+            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=k, verbose=2, n_jobs=-1)#, scoring='roc_auc')
         
         start = time.time()
-        best_model = grid_search.fit( X_train+X_valid, np.concatenate( (y_train,y_valid)) )
+        best_model = grid_search.fit( pd.concat((X_train,X_valid)), np.concatenate((y_train,y_valid)) )
         best_param = best_model.best_params_
         best_score = best_model.best_score_
         best_estimator = best_model.best_estimator_['clf']
@@ -114,17 +136,17 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
         print('best estimator:',best_estimator)
 
         #  retrain it on the entire dataset
+        features = X_train.columns
         coef = []
-        if features:
-            if name=='LogisticRegression':
-                coef.append( dict(zip(['intercept']+features, np.concatenate((best_estimator.intercept_ ,best_estimator.coef_[0])))) )
-                # coef = np.concatenate((best_estimator.intercept_ , best_estimator.coef_[0]))
-            elif name=='MLPClassifier':
-                coef.append( None )
-            elif name=='SVC':
-                coef.append( None )
-            else:
-                coef.append( dict(zip(features, best_estimator.feature_importances_)) )
+        if name=='LogisticRegression':
+            coef.append( dict(zip(['intercept']+features, np.concatenate((best_estimator.intercept_ ,best_estimator.coef_[0])))) )
+            # coef = np.concatenate((best_estimator.intercept_ , best_estimator.coef_[0]))
+        elif name=='MLPClassifier':
+            coef.append( None )
+        elif name=='SVC':
+            coef.append( None )
+        else:
+            coef.append( dict(zip(features, best_estimator.feature_importances_)) )
 
         y_pred = best_model.predict(X_test)
         y_pred_prob = best_model.predict_proba(X_test)
@@ -162,3 +184,4 @@ def score_models(models, loader, split_idx=False, k=5, features=None, outpath=No
             print("Model probabilities written out to {}".format(outpath))
 
         yield scores
+
