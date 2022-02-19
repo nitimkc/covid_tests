@@ -122,14 +122,11 @@ if __name__ == '__main__':
 
     # create directory if it does not exists already
     RESULTS = Path.joinpath(ROOT, 'results',current_filtername)
-    APP_RESULTS = Path(APP_RESULTS, 'model',current_filtername)
-    if not os.path.exists(RESULTS):
-        os.makedirs(RESULTS)
-        print(f"Directory {current_filtername} created to store Model Results in {RESULTS}")
+    RESULTS.mkdir(parents=True, exist_ok=True)
     print(f"Model Results will be saved to {RESULTS}")
-    if not os.path.exists(APP_RESULTS):
-        os.makedirs(APP_RESULTS)
-        print(f"Directory {current_filtername} created to store Model Results in {APP_RESULTS}")
+    
+    APP_RESULTS = Path(APP_RESULTS, 'model',current_filtername)
+    APP_RESULTS.mkdir(parents=True, exist_ok=True)
     print(f"Model Results will be saved to {APP_RESULTS}")
 
     # 2. read data from features, target, validation columns
@@ -166,10 +163,11 @@ if __name__ == '__main__':
     X = X.drop([target]+[filter_col]+[validation], axis=1) 
     y = data[target]
     validation_idx = data[validation]
+    num_cols = data_info['num_features']
     print(f'final columns in the data used for training:\n{X.columns}')
 
     # 7. train models and save models and its scores    
-    for scores in score_models(binary_models, X, y, split_idx=validation_idx, test_set=None, k=5, outpath=RESULTS):
+    for scores in score_models(binary_models, X, y, split_idx=validation_idx, std_cols=num_cols, outpath=RESULTS):
         print(scores)
         with open(Path.joinpath(RESULTS, 'results'+current_filtername+'.json'), 'a') as f:
             f.write(json.dumps(scores) + '\n')
@@ -243,9 +241,9 @@ if __name__ == '__main__':
     np.savetxt(Path.joinpath(RESULTS,'clusterlabels_k'+str(best_k)+'.csv'), best_k_labels.astype(int), delimiter=',')
     print(f"Cluster labels for a test set without {filter_col+filter_logic+filter_val} filter written out to {RESULTS}")
 
-#########################################################################
-# Part 9 among all models select the best one and save
-#########################################################################
+# #########################################################################
+# # Part 9 among all models select the best one and save
+# #########################################################################
     
     # load all results
     all_scores = []
@@ -270,9 +268,9 @@ if __name__ == '__main__':
     # load the best model and test set
     best_model = all_scores[0]
     print('best_model is: ', best_model['name'])
-    with open(Path.joinpath(RESULTS, (best_model['name']+current_filtername+'.pkl')), 'rb') as f: 
+    with open(Path.joinpath(RESULTS, (best_model['name']+'.pkl')), 'rb') as f: 
         model = pickle.load(f)
-    with open(Path.joinpath(RESULTS, (best_model['name']+current_filtername+'_prob.pkl')), 'rb') as f:
+    with open(Path.joinpath(RESULTS, (best_model['name']+'_prob.pkl')), 'rb') as f:
         prob = pickle.load(f) 
     
     # save required info of best model in the heroku app folder
@@ -287,28 +285,3 @@ if __name__ == '__main__':
          pickle.dump(col_means, f)       
     with open(Path.joinpath(APP_RESULTS, "data_info_"+current_filtername+".pkl"), 'wb') as f: 
          pickle.dump(data_info, f)                                      
-
-
-Z=np.random.rand(5,1)
-c=np.random.rand(5,5)
-
-n=len(Z)
-avg=np.mean(Z,axis=0)
-c_avg=c.mean(axis=1)
-
-r=np.zeros(n)
-for i in range(n):
-    print(Z[i]-avg)
-    r[i]=(Z[i]-avg)/c_avg[i]
-    print(r)
-# print(r)
-# r.reshape(-1,1).shape
-
-s = np.subtract(Z,Z.mean())
-for i in s:
-    print(i)
-    s = i/c.mean(axis=1)
-    # print(c.mean(axis=1))
-    print(s)
-print(s)
-s.reshape(-1,1).shape

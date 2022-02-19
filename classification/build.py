@@ -10,7 +10,7 @@ from collections import Counter
 # import unicodedata
 
 from sklearn.model_selection import train_test_split as tts
-
+from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import LabelEncoder
 
 from sklearn.model_selection import GridSearchCV
@@ -35,9 +35,10 @@ binary_models.append( GradientBoostingClassifier(random_state = 0) )
 binary_models.append( MLPClassifier(random_state=0, hidden_layer_sizes=(6,3,1), activation='relu', solver='adam') )
 
 parameters = [
-    {'clf__C': ( np.logspace(-5, 1, 5) ),
+    {
+        'clf__C': ( np.logspace(-5, 1, 5) ),
         'clf__penalty': ['none', 'l2', 'l1', 'elasticnet'], # regularization parameter
-        # 'clf__solver': ['newton-cg', 'lbfgs', 'sag'] # solver
+        # 'clf__solver': ['newton-cg', 'lbfgs', 'sag'], # solver
         },#logistic
     {'clf__n_estimators':range(50,100,10), #67 Number of Trees in the Forest:
         'clf__min_samples_split': np.arange(0.01, 0.1,.02), #109 Minimum Size Split
@@ -59,8 +60,11 @@ parameters = [
         # 'clf__learning_rate':[0.01,.1], #0.1,
         # 'clf__subsample':[0.6,0.7,0.8], #0.6
         },#gradientboosting
-    {'clf__batch_size':[10, 50, 75, 100, 150], 
-     'clf__max_iter':[10, 25, 50],
+    {'clf__hidden_layer_sizes':[(2,2,2),(3,3,3),(4,4,4), (5,5,5)],
+        # 'clf__batch_size':[10, 50, 75, 100, 150], 
+        'clf__activation':["relu", "Tanh"],
+        'clf__learning_rate':["adaptive"],
+        'clf__learning_rate_init':[0.01],
         }#NN
 ]
 
@@ -71,7 +75,7 @@ parameters = [
 # params = parameters[0]
 # k = 5
 # test_set = test_nofilter
-def score_models(models, X, y, split_idx, test_set=None, k=5, outpath=None):
+def score_models(models, X, y, split_idx, std_cols, k=5, test_set=None, outpath=None):
 
     if split_idx is None:
         train_ratio = 0.50
@@ -109,6 +113,12 @@ def score_models(models, X, y, split_idx, test_set=None, k=5, outpath=None):
     y_test = labels.fit_transform(y_test)
     print('completed training and testing data set-up')
 
+    # scale the numeric features of the training data
+    scaler = StandardScaler()
+    X_train[std_cols] = scaler.fit_transform(X_train[std_cols])
+    X_valid[std_cols] = scaler.transform(X_valid[std_cols])
+    X_test[std_cols] = scaler.transform(X_test[std_cols])
+
     names = [str(i).split('(')[0] for i in models]
     for model, name, params in zip(models, names, parameters):
         print(model, '\n', name, '\n', params)
@@ -136,11 +146,10 @@ def score_models(models, X, y, split_idx, test_set=None, k=5, outpath=None):
         print('best estimator:',best_estimator)
 
         #  retrain it on the entire dataset
-        features = X_train.columns
+        features = list(X_train.columns)
         coef = []
         if name=='LogisticRegression':
             coef.append( dict(zip(['intercept']+features, np.concatenate((best_estimator.intercept_ ,best_estimator.coef_[0])))) )
-            # coef = np.concatenate((best_estimator.intercept_ , best_estimator.coef_[0]))
         elif name=='MLPClassifier':
             coef.append( None )
         elif name=='SVC':
