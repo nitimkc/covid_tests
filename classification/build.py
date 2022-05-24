@@ -1,5 +1,9 @@
+import warnings
+warnings.filterwarnings('ignore') 
+
 from logging import raiseExceptions
 from pathlib import Path
+from re import I
 import pandas as pd
 import numpy as np 
 import os
@@ -24,22 +28,26 @@ from sklearn.neural_network import MLPClassifier
 
 from sklearn.pipeline import Pipeline
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score, confusion_matrix 
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, auc, roc_auc_score, roc_curve, confusion_matrix 
 
 binary_models = []
 binary_models.append( LogisticRegression(max_iter=1000, random_state=123) )
+binary_models.append( tree.DecisionTreeClassifier(random_state = 0) )
 binary_models.append( RandomForestClassifier(random_state = 0) )
 # binary_models.append( SVC(random_state = 0, probability=True) )
-binary_models.append( tree.DecisionTreeClassifier(random_state = 0) )
 binary_models.append( GradientBoostingClassifier(random_state = 0) )
 binary_models.append( MLPClassifier(random_state=0, hidden_layer_sizes=(6,3,1), activation='relu', solver='adam') )
 
 parameters = [
-    {
-        'clf__C': ( np.logspace(-5, 1, 5) ),
+    {'clf__C': ( np.logspace(-5, 1, 5) ),
         'clf__penalty': ['none', 'l2', 'l1', 'elasticnet'], # regularization parameter
         # 'clf__solver': ['newton-cg', 'lbfgs', 'sag'], # solver
         },#logistic
+    {'clf__criterion': ['entropy', 'gini'],
+        'clf__min_samples_split': np.arange(0.01, 0.1,.02), #109 Minimum Size Split
+        # 'clf__max_leaf_nodes': list(range(2, 100,4)),
+        # 'clf__max_depth':range(3,20,7), #20
+        },#decisiontree
     {'clf__n_estimators':range(50,100,10), #67 Number of Trees in the Forest:
         'clf__min_samples_split': np.arange(0.01, 0.1,.02), #109 Minimum Size Split
         'clf__max_features': ["sqrt", "log2"], #9
@@ -48,11 +56,6 @@ parameters = [
     # {'clf__C': [0.001, 0.01, 0.1, 1, 10],
     #     'clf__gamma': [0.001, 0.01, 0.1, 1]
     #     },#svm
-    {'clf__criterion': ['entropy', 'gini'],
-        'clf__min_samples_split': np.arange(0.01, 0.1,.02), #109 Minimum Size Split
-        # 'clf__max_leaf_nodes': list(range(2, 100,4)),
-        # 'clf__max_depth':range(3,20,7), #20
-        },#decisiontree
     {'clf__n_estimators':range(50,100,10), #86
         'clf__max_depth':range(10,30,5), #20
         # 'clf__min_samples_split':range(12,25,4),
@@ -68,15 +71,53 @@ parameters = [
         }#NN
 ]
 
-# split_idx = validation_idx
+# X = val[0]
+# y = val[1]
+# split_idx =val[2]
+# k=5
+# filter_idx = filtered_test_idx
 # outpath = RESULTS
-# model = binary_models[0]
-# name = str(model).split('(')[0]
-# params = parameters[0]
-# k = 5
-# test_set = test_nofilter
-def score_models(models, X, y, split_idx, std_cols, k=5, test_set=None, outpath=None):
+# std_cols=num_features
+# models=binary_models[0]
 
+def allmetrics(best_model,X_test,y_test,name,start,ntrain,nvalid):
+
+    best_estimator = best_model.best_estimator_['clf']
+    best_param = best_model.best_params_
+
+    y_pred = best_model.predict(X_test)
+    y_pred_prob = best_model.predict_proba(X_test)[:,1]
+    tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+    fpr, tpr, _ = roc_curve(y_test,  y_pred_prob)
+
+    # get score
+    scores = {
+        'time': time.time() - start,
+        'name': name,
+        'model': str(best_estimator),
+        'size': [ntrain, nvalid, len(X_test)],
+        # 'coef': coef,
+        'best_param': best_param,
+        'accuracy': accuracy_score(y_test, y_pred),
+        'precision': precision_score(y_test, y_pred),
+        'recall': recall_score(y_test, y_pred),
+        'sensitivity': tp/(tp+fn),
+        'specificity': tn/(tn+fp),
+        'fpr': fpr,#.tolist(),
+        'tpr': tpr.tolist(),
+        'AUC': roc_auc_score(y_test, y_pred_prob),
+        'f1_test': f1_score(y_test, y_pred),
+    }
+    print(f"     scores saved to dictionary")
+    print(f"     AUC: {scores['AUC']}")
+    return scores
+
+def score_models(models, X, y, split_idx, std_cols, k=5, filter_idx=None, outpath=None):
+    import warnings
+    warnings.filterwarnings('ignore') 
+
+    # split data for training valid and test
+    print(f"     splitting data into train, validation and test sets")
     if split_idx is None:
         train_ratio = 0.50
         validation_ratio = 0.25
@@ -87,41 +128,34 @@ def score_models(models, X, y, split_idx, std_cols, k=5, test_set=None, outpath=
         train_idx = split_idx == "Training"
         valid_idx = split_idx == "Validation"
         test_idx = split_idx == "Test"
-        
         X_train, y_train = X[train_idx], y[train_idx]
         X_valid, y_valid = X[valid_idx], y[valid_idx]
         X_test, y_test = X[test_idx], y[test_idx] 
-
-    # if test set without any filter is provided use that as test_set
-    if test_set is not None:
-        X_test, y_test = test_set[0], test_set[1]
-        print(f"Test set without any filter used")
-
-    X_test.to_csv(Path.joinpath(outpath,'X_test.csv'), index=False)
-    print("X_test written out to {}".format(outpath))
-    
-    n_Xtrn = len(X_train)
-    n_Xval = len(X_valid)
-    n_Xtst = len(X_test)
-
-    print('n_train:', n_Xtrn, '\nn_test:' , n_Xtst, '\nn_valid:', n_Xval)
+    n_Xtrain = len(X_train)
+    n_Xvalid = len(X_valid)
+    n_Xtest = len(X_test)
+    print(f"     n_train: {n_Xtrain}, n_test: {n_Xtest}, n_valid: {n_Xvalid}")
 
     # Label encode the targets
     labels = LabelEncoder()
     y_train = labels.fit_transform(y_train)
     y_valid = labels.fit_transform(y_valid)
     y_test = labels.fit_transform(y_test)
-    print('completed training and testing data set-up')
+    print('     encoded labels for train valid and test sets')
 
     # scale the numeric features of the training data
     scaler = StandardScaler()
     X_train[std_cols] = scaler.fit_transform(X_train[std_cols])
     X_valid[std_cols] = scaler.transform(X_valid[std_cols])
     X_test[std_cols] = scaler.transform(X_test[std_cols])
+    print('     scaled features for train valid and test sets')
+    if outpath:
+        with open(Path.joinpath(outpath, "scaler.pkl"), 'wb') as f:
+            pickle.dump(scaler, f)
 
     names = [str(i).split('(')[0] for i in models]
     for model, name, params in zip(models, names, parameters):
-        print(model, '\n', name, '\n', params)
+        print(f"     Training:{model}\n")#\n     {params}")
         
         pipe = Pipeline([
             ('clf', model),
@@ -130,67 +164,63 @@ def score_models(models, X, y, split_idx, std_cols, k=5, test_set=None, outpath=
         # Create gridsearch with specified valid set
         if split_idx is not None: 
             # Create a list where train data indices are -1 and validation data indices are 0
-            test_fold = [-1 for i in range(n_Xtrn)] + [0 for i in range(n_Xval)]
+            test_fold = [-1 for i in range(n_Xtrain)] + [0 for i in range(n_Xvalid)]
             ps = PredefinedSplit(test_fold=test_fold)
-            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=ps, verbose=2, n_jobs=-1)#, scoring='roc_auc')
+            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=ps, n_jobs=-1)#, verbose=0, scoring='roc_auc')
         else:
-            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=k, verbose=2, n_jobs=-1)#, scoring='roc_auc')
-        
+            grid_search = GridSearchCV(estimator=pipe, param_grid=params, cv=k, n_jobs=-1)#, verbose=0, scoring='roc_auc')
+        print(f'     grid search for best model in {name} completed')
         start = time.time()
         best_model = grid_search.fit( pd.concat((X_train,X_valid)), np.concatenate((y_train,y_valid)) )
         best_param = best_model.best_params_
         best_score = best_model.best_score_
         best_estimator = best_model.best_estimator_['clf']
-        print('best parameters:', best_param)
-        print('best score:', best_score)
-        print('best estimator:',best_estimator)
-
-        #  retrain it on the entire dataset
-        features = list(X_train.columns)
-        coef = []
-        if name=='LogisticRegression':
-            coef.append( dict(zip(['intercept']+features, np.concatenate((best_estimator.intercept_ ,best_estimator.coef_[0])))) )
-        elif name=='MLPClassifier':
-            coef.append( None )
-        elif name=='SVC':
-            coef.append( None )
-        else:
-            coef.append( dict(zip(features, best_estimator.feature_importances_)) )
-
-        y_pred = best_model.predict(X_test)
-        y_pred_prob = best_model.predict_proba(X_test)
-        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
-
-        # save results
-        scores = {
-            'time': time.time() - start,
-            'name': name,
-            'model': str(best_estimator),
-            'size': [len(X_train), len(X_valid), len(X_test)],
-            'accuracy': accuracy_score(y_test, y_pred),
-            'precision': precision_score(y_test, y_pred),
-            'recall': recall_score(y_test, y_pred),
-            'sensitivity': tp/(tp+fn),
-            'specificity': tn/(tn+fp),
-            'AUC': roc_auc_score(y_test, y_pred_prob[:, 1]),
-            'f1_test': f1_score(y_test, y_pred),
-            'coef': coef,
-            'best_param': best_param,
-        }
-        
-        print("{" + "\n".join("{!r}: {!r},".format(k, v) for k, v in scores.items()) + "}")
-
-        # if scores['name']=='LogisticRegression':
-        #     import shap
-        #     explainer = shap.TreeExplainer(model)
-        #     scores['shap_values'] = explainer.shap_values(X_train)
+        print('     best parameters:', best_param)
+        print('     best score:', best_score)
+        print('     best estimator:',best_estimator)
         if outpath:
             with open(Path.joinpath(outpath, name + ".pkl"), 'wb') as f:
-                pickle.dump(grid_search.best_estimator_, f)
-            print("Model written out to {}".format(outpath))
-            with open(Path.joinpath(outpath, name + "_prob.pkl"), 'wb') as f:
-                pickle.dump(y_pred_prob, f)
-            print("Model probabilities written out to {}".format(outpath))
+                pickle.dump(best_estimator, f)
 
-        yield scores
+        # #  save coef for logistic regression
+        # features = list(X_train.columns)
+        # coef = []
+        # if name=='LogisticRegression':
+        #     coef.append( dict(zip(['intercept']+features, np.concatenate((best_estimator.intercept_ ,best_estimator.coef_[0])))) )
+        # elif name=='MLPClassifier':
+        #     coef.append( None )
+        # elif name=='SVC':
+        #     coef.append( None )
+        # else:
+        #     coef.append( dict(zip(features, best_estimator.feature_importances_)) )
 
+        if filter_idx is not None:
+            # set up each set of test data
+            print(f'     No. of filter_idx provided to separate test set: {len(filter_idx)}')
+            print(f'     No. of index for each filter: {len(filter_idx[0])}, {len(filter_idx[1])}')
+            print(f'     No. of instances in original test data: {len(X_test)}, {len(y_test)}')
+            # add index to y_test
+            y_test_full = pd.Series(y_test, index=X_test.index)
+            # create two test set for each filter
+            X_test_divided = [X_test.loc[i] for i in filter_idx]
+            y_test_divided = [y_test_full.loc[i] for i in filter_idx]
+            # convert y_test back to numpy array
+            y_test_divided = [i.values for i in y_test_divided] 
+
+            # get prediction and probability in each set of test data
+            scores_divided = []
+            for filtered_Xtest, filtered_ytest  in zip(X_test_divided, y_test_divided):
+                print(f'     No. of instances in filtered test set: {len(filtered_Xtest)}, {len(filtered_ytest)}')
+                scores_divided.append(allmetrics(best_model, filtered_Xtest, filtered_ytest, name, start, n_Xtrain, n_Xvalid))
+            yield scores_divided
+
+        else:
+            # save a copy of text set
+            print(f'     No. of filter_idx provided to separate test set: {filter_idx}')
+            X_test.to_csv(Path.joinpath(outpath,'X_test.csv'), index=False)
+            print("     X_test written out to {}".format(outpath))
+
+            # get prediction and probability on test data
+            scores = allmetrics(best_model, X_test, y_test, name, start, n_Xtrain, n_Xvalid)
+            yield scores
+ 

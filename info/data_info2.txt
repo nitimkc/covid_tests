@@ -4,5 +4,7 @@
 'target': 'TestResult',
 'validation':'Validation',
 'filter_feature':'Symptomatics',
+'filter_logic':'==',
+'filter_value':'1',
 'cluster_features':['Ave_Pos_Rate_7dMA', 'Ave_Pos_Sympt_7dMA', 'Ave_Pos_Asymp_7d_MA', 'Ave_Symptomatic_Tests_7dMA', 'Num_Tests_7dMA' ],
 }
