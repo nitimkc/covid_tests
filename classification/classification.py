@@ -19,11 +19,11 @@ from matplotlib.ticker import MaxNLocator
 
 from build import binary_models
 from build import score_models
-
 from cluster import Best_Cluster_KMeans
 
 # ROOT must be the main directory where a 'data' folder and 'info' folder exists 
-# with respective files, so DATA and INFO variable need not be changed
+# 'data' folder must contain data saved as csv file
+# 'info' folder must contain the info file saved in exact template as a txt file
 ROOT = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_tests\covid_tests')
 APP_RESULTS = Path(r'C:\Users\niti.mishra\Documents\2_TDMDAL\projects\covid_predictor')
 DATA = Path.joinpath(ROOT, 'data')
@@ -174,7 +174,7 @@ for key,val in filtered_data.items():
             filtered_model_scores.append(scores)
 
 ################################################################################
-# 7. create ROC Curve for each filtered set 
+# 7. create ROC Curve and permutation plot for each filtered set 
 ################################################################################  
 
 for filtername in filter_order[:-1]:
