@@ -1,7 +1,8 @@
-#########################################################################
-# Part 8 perform clustering analysis on features defined in cluster
-#        features in the data_info file
-#########################################################################
+################################################################################
+# Author : (c) Niti Mishra
+# Date   : 2022.05.26
+# Part 10 model training pipeline to find best k model
+################################################################################
 
 from pathlib import Path
 import pandas as pd
@@ -12,6 +13,10 @@ from matplotlib.ticker import MaxNLocator
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.metrics import silhouette_score
 
+################################################################################  
+# function to train k mean cluster model and 
+# calculate silhoutte score and ballhall if specified
+################################################################################  
 class Cluster_KMeans(object):
 
     def __init__(self, X, n_clusters=5, n_init=10, max_iter=300, silhoutte_nsample=(30000,6), ballhall=False):
@@ -60,6 +65,12 @@ class Cluster_KMeans(object):
 # test1 = Cluster_KMeans(X=X_cluster_train, n_clusters=2, silhoutte_nsample=(300,5), ballhall=True)
 # test1res = test1.fit_eval()
 
+################################################################################  
+# model to determine the best k model based on silhoutte score
+# save silhoute plot and elbow plot if path is provided 
+# include ballhall if specified
+################################################################################ 
+
 class Best_Cluster_KMeans(object):
 
     def __init__(self, X, max_k=3, n_init=10, max_iter=300, silhoutte_nsample=(30000,6), ballhall=False, result_path=None):
@@ -84,31 +95,30 @@ class Best_Cluster_KMeans(object):
             if self.ballhall:
                 ballhalls.append(results[4])
 
-        # find best k based on minimum silhouette score and the subsequent kmeans model
+        # find best k based on maximum silhouette score and the subsequent kmeans model
         best_k_idx = silhouettes.index(max(silhouettes)) 
         best_k = krange[best_k_idx]
         print(f"best number of clusters based on silhouttes score: {best_k}")
         best_k_model = mbk_models[best_k_idx]
-        print(best_k_model)
 
+        # plot scores of multiple Kmeans models
         if self.result_path:
-            # save plot of multiple KMeans
+            # also for ballhall if specified
             if self.ballhall:
                 fig, (ax1, ax2, ax3) = plt.subplots(3, sharex=True)
             else:
                 fig, (ax1, ax2) = plt.subplots(2, sharex=True)
-            
             ax1.plot(krange, inertias, marker='o')
             ax2.plot(krange, silhouettes, marker='o')
             ax1.title.set_text('Elbow method')
             ax2.title.set_text('Silhoutte Score')
+            # add ballhall plot if specified
             if self.ballhall:
                 ax3.plot(krange, ballhalls, marker='o')
                 ax3.title.set_text('Ball-Hall Score')
             plt.xlabel('Number of clusters')
             ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
             fig.tight_layout()
-            # plt.show()
             plt.savefig(Path.joinpath(self.result_path,'cluster_scores.png'))
             print(f"cluster inertia and sihoutte score plot saved")
 
@@ -117,15 +127,10 @@ class Best_Cluster_KMeans(object):
                 'cluster_k': [i for i in krange], 
                 'inertia': inertias, 
                 'silhoutte':silhouettes,})
+            # add ballhall score if specified
             if self.ballhall:
                 clusters_info['ballhall']=ballhalls
             clusters_info.to_csv(Path.joinpath(self.result_path,'clusterinformation.csv'))
-            # with open(Path.joinpath(self.result_path,'cluster_info.json'), 'w', encoding='utf-8') as f:
-            #     f.write(json.dumps({
-            #         'cluster_k': [i for i in krange], 
-            #         'inertia': inertias, 
-            #         'silhoutte':silhouettes, 
-            #         'ballhall':ballhalls}))
             print(f"cluster labels, cluster centers, inertia, silhoutte and ball-hall scores saved to {self.result_path}") 
         
             # # save info of all clusters
@@ -137,6 +142,7 @@ class Best_Cluster_KMeans(object):
             
             # cluster_labels.to_csv(Path.joinpath(RESULTS,'cluster_labels_allK.csv'))
             # cluster_means.to_csv(Path.joinpath(RESULTS,'cluster_means_allK_'+current_filtername+'.csv'), index=False)
+            
         return (best_k , best_k_model)
 
 # test= Best_Cluster_KMeans(X=X_cluster, max_k=5, silhoutte_nsample=(30,5), ballhall=True, result_path=RESULTS)
