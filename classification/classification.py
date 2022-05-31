@@ -3,6 +3,7 @@
 # Date   : 2022.05.26
 ################################################################################
 
+from turtle import left
 import warnings
 warnings.filterwarnings('ignore') 
 
@@ -174,7 +175,7 @@ for key,val in filtered_data.items():
             filtered_model_scores.append(scores)
 
 ################################################################################
-# 7. create ROC Curve and permutation plot for each filtered set 
+# 7. create ROC Curve for each filtered set 
 ################################################################################  
 
 for filtername in filter_order[:-1]:
@@ -188,16 +189,6 @@ for filtername in filter_order[:-1]:
     # plt.show()
     plt.savefig(Path.joinpath(RESULTS_MAIN, f'ROC_Curve__teston{filtername}.png')) 
 
-for filtername in filter_order[:-1]:
-    print(filtername)
-    fig, ax = plt.subplots()
-    for k,v in importances.items():
-        if filtername in k:
-            plt.plot([x for x in range(len(v))], v, label=k.replace(filtername,'').replace('_',''))            
-    plt.title(f"Permutation feature importance \non test data with filter: {'='.join(filtername.split('_'))}")
-    plt.legend(loc="upper left")
-    # plt.show()
-    plt.savefig(Path.joinpath(RESULTS_MAIN, f'feature_imp__teston{filtername}.png')) 
 
 ################################################################################
 # 8. find the best model for each filtered set based on AUC and 
@@ -241,9 +232,11 @@ for idx, filterid in enumerate(filter_order[:-1]):
     # find the name of best model and the path where it is saved
     best_model_name = filtered_model_scores[idx][0]['name']
     if "trainedall" in best_model_name:
-        best_model_name = best_model_name.replace('trainedall','',1)
+        best_models[filterid] = best_model_name
+        best_model_name = best_model_name.replace('trainedall__','',1)
         best_model_path = Path.joinpath(RESULTS_MAIN, filter_order[-1]) 
     else:
+        best_models[filterid] = best_model_name
         best_model_path = Path.joinpath(RESULTS_MAIN, filterid)
     print(f'Best model for {filterid} is {best_model_name} in {best_model_path}')
 
@@ -253,12 +246,9 @@ for idx, filterid in enumerate(filter_order[:-1]):
     with open(Path.joinpath(best_model_path, "scaler.pkl"), 'rb') as f: 
         scaler_best_model = pickle.load(f)
     
-    # add best model to best_models dictionary
-    best_models[filterid] = (scaler_best_model, best_model)
-    
     # save best model and its scaler in the results folder as best model
     modelfilename = f"bestmodel__{filterid}__{best_model_name}.pkl"
-    scalerfilename = f"bestmodel_scaler_{filterid}_{best_model_name}.pkl"
+    scalerfilename = f"bestmodel_scaler__{filterid}__{best_model_name}.pkl"
     with open(Path.joinpath(RESULTS_MAIN, modelfilename), 'wb') as f:
         pickle.dump(best_model, f)
     with open(Path.joinpath(RESULTS_MAIN, scalerfilename), 'wb') as f:
@@ -271,7 +261,26 @@ for idx, filterid in enumerate(filter_order[:-1]):
 
 
 ################################################################################
-# 9. get model prediction and probabilities for each filtered test set  
+# 9. create permutation plot for each filtered set with best models
+################################################################################  
+
+for filtername in filter_order[:-1]:
+    print(filtername)
+    if "trainedall" in best_models[filtername]:
+        imp_val, imp_feat = importances[f"{best_models[filtername]}__{filtername}"]
+    else:
+        imp_val, imp_feat = importances[f"{filtername}__{best_models[filtername]}"]
+    fig, ax = plt.subplots()
+    plt.barh(imp_feat, imp_val, label=best_models[filtername].replace('_',''))
+    plt.xticks(rotation = 90)            
+    plt.title(f"Permutation feature importance \non test data with filter: {'='.join(filtername.split('_'))}")
+    plt.legend(loc="upper right")
+    plt.gcf().subplots_adjust(left=0.35)
+    # plt.show()
+    plt.savefig(Path.joinpath(RESULTS_MAIN, f'feature_imp__teston{filtername}.png')) 
+
+################################################################################
+# 10. get model prediction and probabilities for each filtered test set  
 #    from model with highest auc in that filtered test set and 
 #    combine the test set
 ################################################################################  
@@ -294,7 +303,7 @@ test_nofilter = pd.concat(featmat_divided, axis=0)
 print(f"\nmodel probabilities based on best performing model obtained for each filtered set and combined\n")
 
 ################################################################################
-# 10. scale numeric features   
+# 11. scale numeric features   
 #     perform clustering analysis on cluster features only
 #     REFER TO cluster.py for model training pipeline
 ################################################################################  
@@ -327,7 +336,7 @@ with open(Path.joinpath(APP_RESULTS, "best_K_model_"+str(best_k)+".pkl"), 'wb') 
     pickle.dump(best_kmeans_model, f)
 
 ################################################################################
-# 11. get probability percentile grouped by cluster from best model   
+# 12. get probability percentile grouped by cluster from best model   
 ################################################################################  
 
 cluster_percentiles = pd.DataFrame()

@@ -113,7 +113,7 @@ def allmetrics(best_model,X_test,y_test,name,start,ntrain,nvalid):
         'specificity': tn/(tn+fp),
         'fpr': fpr,
         'tpr': tpr,
-        'importances':importances,
+        'importances':[importances, X_test.columns],
         'AUC': roc_auc_score(y_test, y_pred_prob),
         'f1_test': f1_score(y_test, y_pred),
     }
