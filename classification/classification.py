@@ -270,6 +270,8 @@ for filtername in filter_order[:-1]:
         imp_val, imp_feat = importances[f"{best_models[filtername]}__{filtername}"]
     else:
         imp_val, imp_feat = importances[f"{filtername}__{best_models[filtername]}"]
+    sort_idx = np.argsort(imp_val)
+    imp_val, imp_feat = [imp_val[i] for i in sort_idx], [imp_feat[i] for i in sort_idx]
     fig, ax = plt.subplots()
     plt.barh(imp_feat, imp_val, label=best_models[filtername].replace('_',''))
     plt.xticks(rotation = 90)            
