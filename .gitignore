@@ -3,5 +3,7 @@ readings/
 .ipynb_checkpoints/
 notes_todo.txt
 results/*.xlsx
+results/*.csv
+results/*.pkl
 results/*/*
 jupyter/
